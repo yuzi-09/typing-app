@@ -1578,6 +1578,7 @@
       score += gained;
       bump(el.score);
       triggerComboCallout(correctStreak);
+      if(correctStreak > 0 && correctStreak % 3 === 0){ timeLeft += 2; bump(el.time); }
       if(correctStreak > 0 && correctStreak % 5 === 0) gainLife();
       if(correctWordsThisLevel >= WORDS_PER_LEVEL_UP && level < MAX_LEVEL){
         level++;
