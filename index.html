@@ -38,6 +38,14 @@
   .masthead h1{ font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:800; letter-spacing:0.5px; margin:0; }
   .masthead h1 span{ color:var(--accent); }
   .masthead .tag{ font-size:11px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; }
+  .avatar-row{ display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .avatar-emoji{ font-size:22px; filter:drop-shadow(0 0 6px rgba(255,180,84,0.4)); transition:transform .3s ease; }
+  .avatar-emoji.evolve{ animation:heartPop .5s ease; }
+  .avatar-info{ display:flex; flex-direction:column; gap:3px; min-width:90px; }
+  .avatar-name{ font-size:10px; color:var(--dim); letter-spacing:1px; }
+  .avatar-bar-wrap{ width:90px; height:4px; background:var(--line); }
+  .avatar-bar{ height:100%; background:var(--accent-2); width:0%; transition:width .3s ease; }
+  .avatar-progress{ font-size:10px; color:var(--dim); font-variant-numeric:tabular-nums; }
   .lvl-badge{
     font-family:'Space Grotesk', sans-serif;
     font-size:13px; font-weight:700;
@@ -154,6 +162,34 @@
   .idle-title{ text-align:center; font-size:12px; color:var(--dim); letter-spacing:1px; margin-bottom:14px; }
   .idle-count{ text-align:center; font-size:11px; color:var(--dim); margin-top:-10px; margin-bottom:18px; }
 
+  .mode-tabs{ display:flex; gap:8px; justify-content:center; margin-bottom:22px; }
+  .mode-tab{
+    background:transparent; border:1px solid var(--line); color:var(--dim);
+    font-family:inherit; font-size:13px; letter-spacing:1px; padding:10px 20px; cursor:pointer; transition:.15s;
+  }
+  .mode-tab.active{ border-color:var(--accent); color:var(--accent); }
+  .rpg-progress-info{ text-align:center; font-size:13px; color:var(--dim); margin-bottom:20px; line-height:1.9; white-space:pre-line; }
+
+  .battle-stage-label{ font-size:11px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; }
+  .hp-row{ width:100%; max-width:380px; }
+  .hp-block{ display:flex; flex-direction:column; gap:4px; }
+  .hp-label{ font-size:11px; color:var(--accent-2); letter-spacing:2px; }
+  .hp-bar-wrap{ width:100%; height:10px; background:var(--line); border:1px solid var(--line); }
+  .hp-bar-wrap.enemy{ max-width:280px; margin:0 auto; }
+  .hp-bar{ height:100%; transition:width .3s ease; }
+  .hp-bar.player{ background:var(--accent-2); }
+  .hp-bar.enemy{ background:var(--error); }
+  .hp-text{ font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums; text-align:right; }
+  .hp-block .hp-text{ text-align:right; }
+  .enemy-block{ display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; max-width:280px; }
+  .enemy-block .hp-text{ text-align:center; }
+  .enemy-emoji{ font-size:56px; filter:drop-shadow(0 0 12px rgba(255,107,94,0.3)); transition:transform .15s; }
+  .enemy-emoji.hit{ animation:enemyHit .25s ease; }
+  @keyframes enemyHit{ 0%,100%{transform:scale(1);} 50%{transform:scale(0.85) translateX(4px);} }
+  .enemy-emoji.defeated{ animation:enemyDefeat .5s ease forwards; }
+  @keyframes enemyDefeat{ 0%{opacity:1; transform:scale(1);} 100%{opacity:0; transform:scale(1.6) rotate(15deg);} }
+  .enemy-name{ font-size:13px; color:var(--ink); letter-spacing:1px; }
+
   .result{ text-align:center; }
   .result .grade{ font-family:'Space Grotesk', sans-serif; font-size:52px; font-weight:800; color:var(--accent); margin-bottom:4px; }
   .result .sub{ font-size:12px; color:var(--dim); letter-spacing:1px; margin-bottom:22px; }
@@ -231,6 +267,14 @@
     <div>
       <h1>TYPE<span>//</span>DRILL <span style="font-size:15px; -webkit-text-fill-color:var(--dim); color:var(--dim);">PRO</span></h1>
       <div class="tag">単語・会話・ことわざ・歴史人物・中学用語 全10レベル</div>
+      <div class="avatar-row">
+        <span class="avatar-emoji" id="avatarEmoji">🥚</span>
+        <div class="avatar-info">
+          <span class="avatar-name" id="avatarName">たまご</span>
+          <div class="avatar-bar-wrap"><div class="avatar-bar" id="avatarBar"></div></div>
+        </div>
+        <span class="avatar-progress" id="avatarProgressText">0/50</span>
+      </div>
     </div>
     <div class="lvl-badge" id="lvlBadge">LV.1</div>
   </div>
@@ -247,12 +291,28 @@
     <div class="lvlup-banner" id="lvlBanner">LEVEL UP</div>
 
     <div id="idleView">
-      <div class="idle-title">開始レベルを選択</div>
-      <div class="idle-levels" id="lvlPicks"></div>
-      <div class="idle-count" id="idleCount"></div>
-      <div style="text-align:center; display:flex; gap:10px; justify-content:center;">
-        <button class="overlay-btn" id="startBtn">開始する</button>
-        <button class="rank-btn" id="showRankBtn">🏆 ランキング</button>
+      <div class="mode-tabs">
+        <button class="mode-tab" id="tabScoreBtn">⚔️ スコアアタック</button>
+        <button class="mode-tab" id="tabRpgBtn">🗡️ RPGモード</button>
+      </div>
+
+      <div id="idleScoreContent">
+        <div class="idle-title">開始レベルを選択</div>
+        <div class="idle-levels" id="lvlPicks"></div>
+        <div class="idle-count" id="idleCount"></div>
+        <div style="text-align:center; display:flex; gap:10px; justify-content:center;">
+          <button class="overlay-btn" id="startBtn">開始する</button>
+          <button class="rank-btn" id="showRankBtn">🏆 ランキング</button>
+        </div>
+      </div>
+
+      <div id="idleRpgContent" style="display:none;">
+        <div class="idle-title">冒険の記録</div>
+        <div class="rpg-progress-info" id="rpgProgressInfo">まだ冒険を始めていません</div>
+        <div style="text-align:center; display:flex; gap:10px; justify-content:center;">
+          <button class="overlay-btn" id="rpgContinueBtn">ぼうけんを始める</button>
+          <button class="rank-btn" id="rpgRestartBtn">最初から</button>
+        </div>
       </div>
     </div>
 
@@ -287,6 +347,43 @@
       <button class="overlay-btn" id="retryBtn">もう一度</button>
     </div>
 
+    <div id="battleView" style="display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px; width:100%;">
+      <div class="battle-stage-label" id="battleStageLabel">STAGE 1</div>
+      <div class="hp-row">
+        <div class="hp-block">
+          <div class="hp-label">YOU</div>
+          <div class="hp-bar-wrap"><div class="hp-bar player" id="playerHpBar"></div></div>
+          <div class="hp-text" id="playerHpText">100/100</div>
+        </div>
+      </div>
+      <div class="enemy-block">
+        <div class="enemy-emoji" id="enemyEmoji">🟢</div>
+        <div class="enemy-name" id="enemyName">スライム</div>
+        <div class="hp-bar-wrap enemy"><div class="hp-bar enemy" id="enemyHpBar"></div></div>
+        <div class="hp-text" id="enemyHpText">30/30</div>
+      </div>
+      <div class="timebar-wrap"><div class="timebar" id="battleTimebar"></div></div>
+      <div class="kanji" id="battleKanji">—</div>
+      <div class="yomi" id="battleYomi">—</div>
+      <div class="word-track" id="battleTrack"></div>
+      <div class="hint">正解で攻撃、ミスでダメージ ・ <b>Space</b>で次へスキップ</div>
+    </div>
+
+    <div id="battleOverView" class="result" style="display:none;">
+      <div class="grade" id="battleOverTitle">たおれた…</div>
+      <div class="sub" id="battleOverSub">—</div>
+      <div style="text-align:center; display:flex; gap:10px; justify-content:center;">
+        <button class="overlay-btn" id="battleRetryBtn">このステージからやり直す</button>
+        <button class="rank-btn" id="battleQuitBtn">タイトルへ</button>
+      </div>
+    </div>
+
+    <div id="battleClearView" class="result" style="display:none;">
+      <div class="grade" id="battleClearTitle">CAMPAIGN CLEAR!</div>
+      <div class="sub" id="battleClearSub">—</div>
+      <button class="overlay-btn" id="battleClearBackBtn">タイトルへ</button>
+    </div>
+
     <input class="capture" id="capture" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="url" lang="en">
   </div>
 
@@ -313,7 +410,13 @@
       ["犬","いぬ"],["猫","ねこ"],["鳥","とり"],["魚","さかな"],
       ["水","みず"],["火","ひ"],["木","き"],["土","つち"],
       ["空気","くうき"],["朝","あさ"],["夜","よる"],["昼","ひる"],
-      ["今日","きょう"],["明日","あした"],["昨日","きのう"]
+      ["今日","きょう"],["明日","あした"],["昨日","きのう"],
+      ["虹","にじ"],["雲","くも"],["氷","こおり"],["波","なみ"],["森","もり"],["林","はやし"],["岩","いわ"],["砂","すな"],
+      ["道","みち"],["橋","はし"],["店","みせ"],["家","いえ"],["庭","にわ"],["窓","まど"],["鍵","かぎ"],["傘","かさ"],
+      ["靴","くつ"],["帽子","ぼうし"],["眼鏡","めがね"],["時計","とけい"],["鏡","かがみ"],["机","つくえ"],["椅子","いす"],["本","ほん"],
+      ["絵","え"],["歌","うた"],["音","おと"],["色","いろ"],["匂い","におい"],["力","ちから"],["足","あし"],["手","て"],
+      ["目","め"],["口","くち"],["耳","みみ"],["髪","かみ"],["声","こえ"],["汗","あせ"],["涙","なみだ"],["笑顔","えがお"],
+      ["夏","なつ"],["冬","ふゆ"],["秋","あき"],["春","はる"]
     ]},
     { name:"LV.2 基礎", perWord:4.3, words:[
       ["桜","さくら"],["音楽","おんがく"],["太陽","たいよう"],["電車","でんしゃ"],
@@ -326,7 +429,12 @@
       ["会議室","かいぎしつ"],["電池","でんち"],
       ["自転車","じてんしゃ"],["教科書","きょうかしょ"],
       ["遠足","えんそく"],["昼食","ちゅうしょく"],
-      ["冷蔵庫","れいぞうこ"],["洗濯機","せんたくき"]
+      ["冷蔵庫","れいぞうこ"],["洗濯機","せんたくき"],
+      ["台所","だいどころ"],["玄関","げんかん"],["屋根","やね"],["庭園","ていえん"],["花瓶","かびん"],["時代","じだい"],
+      ["歴史","れきし"],["文化","ぶんか"],["経済","けいざい"],["社会","しゃかい"],["政治","せいじ"],["科学","かがく"],
+      ["数学","すうがく"],["体育","たいいく"],["美術","びじゅつ"],["音符","おんぷ"],["楽器","がっき"],["絵画","かいが"],
+      ["彫刻","ちょうこく"],["建築","けんちく"],["郵便","ゆうびん"],["切手","きって"],["封筒","ふうとう"],["荷物","にもつ"],
+      ["宅配便","たくはいびん"],["引っ越し","ひっこし"],["掃除","そうじ"],["洗濯","せんたく"],["料金","りょうきん"],["予約","よやく"]
     ]},
     { name:"LV.3 標準", perWord:3.8, words:[
       ["図書館","としょかん"],["幸せ","しあわせ"],["動物","どうぶつ"],["友達","ともだち"],
@@ -335,14 +443,25 @@
       ["新幹線","しんかんせん"],["交差点","こうさてん"],["運動会","うんどうかい"],["消防車","しょうぼうしゃ"],
       ["救急車","きゅうきゅうしゃ"],["博物館","はくぶつかん"],["動物園","どうぶつえん"],["遊園地","ゆうえんち"],
       ["展覧会","てんらんかい"],["卒業式","そつぎょうしき"],["入学式","にゅうがくしき"],["運転手","うんてんしゅ"],
-      ["黒板","こくばん"],["時間割","じかんわり"],["給食","きゅうしょく"],["掲示板","けいじばん"]
+      ["黒板","こくばん"],["時間割","じかんわり"],["給食","きゅうしょく"],["掲示板","けいじばん"],
+      ["図画工作","ずがこうさく"],["避難訓練","ひなんくんれん"],["体育館","たいいくかん"],["音楽室","おんがくしつ"],
+      ["理科室","りかしつ"],["校庭","こうてい"],["昇降口","しょうこうぐち"],["下駄箱","げたばこ"],["保健室","ほけんしつ"],
+      ["用務員","ようむいん"],["担任","たんにん"],["宿題","しゅくだい"],["通知表","つうちひょう"],["夏休み","なつやすみ"],
+      ["冬休み","ふゆやすみ"],["連絡帳","れんらくちょう"],["文化祭","ぶんかさい"],["体育祭","たいいくさい"],["社会見学","しゃかいけんがく"],
+      ["修学旅行","しゅうがくりょこう"],["委員会","いいんかい"],["班長","はんちょう"],["日直","にっちょく"],["号令","ごうれい"],
+      ["朝礼","ちょうれい"],["給食当番","きゅうしょくとうばん"],["自由研究","じゆうけんきゅう"],["運動靴","うんどうぐつ"]
     ]},
     { name:"LV.4 応用", perWord:3.4, words:[
       ["可能性","かのうせい"],["必要性","ひつようせい"],["安全性","あんぜんせい"],["責任感","せきにんかん"],
       ["達成感","たっせいかん"],["協力","きょうりょく"],["努力","どりょく"],["挑戦","ちょうせん"],
       ["成長","せいちょう"],["経験","けいけん"],["価値観","かちかん"],["自主性","じしゅせい"],
       ["積極的","せっきょくてき"],["消極的","しょうきょくてき"],["判断力","はんだんりょく"],["集中力","しゅうちゅうりょく"],
-      ["想像力","そうぞうりょく"],["表現力","ひょうげんりょく"],["持続可能","じぞくかのう"],["効率","こうりつ"]
+      ["想像力","そうぞうりょく"],["表現力","ひょうげんりょく"],["持続可能","じぞくかのう"],["効率","こうりつ"],
+      ["論理的","ろんりてき"],["客観的","きゃっかんてき"],["主観的","しゅかんてき"],["効果的","こうかてき"],
+      ["具体的","ぐたいてき"],["抽象的","ちゅうしょうてき"],["合理的","ごうりてき"],["本質的","ほんしつてき"],
+      ["潜在的","せんざいてき"],["理想的","りそうてき"],["現実的","げんじつてき"],["建設的","けんせつてき"],
+      ["批判的","ひはんてき"],["肯定的","こうていてき"],["否定的","ひていてき"],["主体性","しゅたいせい"],
+      ["多様性","たようせい"],["一貫性","いっかんせい"],["信頼関係","しんらいかんけい"],["危機管理","ききかんり"]
     ]},
     { name:"LV.5 発展", perWord:3.0, words:[
       ["危機感","ききかん"],["先入観","せんにゅうかん"],["固定観念","こていかんねん"],["潜在能力","せんざいのうりょく"],
@@ -350,7 +469,12 @@
       ["革新的","かくしんてき"],["矛盾","むじゅん"],["葛藤","かっとう"],["克服","こくふく"],
       ["妥協","だきょう"],["配慮","はいりょ"],["洗練","せんれん"],["繊細","せんさい"],
       ["円滑","えんかつ"],["円熟","えんじゅく"],["熟考","じゅっこう"],["誠実","せいじつ"],
-      ["謙虚","けんきょ"],["寛容","かんよう"],["達観","たっかん"]
+      ["謙虚","けんきょ"],["寛容","かんよう"],["達観","たっかん"],
+      ["執着","しゅうちゃく"],["未練","みれん"],["覚悟","かくご"],["決意","けつい"],["信念","しんねん"],
+      ["使命感","しめいかん"],["向上心","こうじょうしん"],["探究心","たんきゅうしん"],["好奇心","こうきしん"],
+      ["忍耐力","にんたいりょく"],["包容力","ほうようりょく"],["統率力","とうそつりょく"],["洞察","どうさつ"],
+      ["分析力","ぶんせきりょく"],["発想力","はっそうりょく"],["応用力","おうようりょく"],["適応力","てきおうりょく"],
+      ["自制心","じせいしん"],["節度","せつど"],["品格","ひんかく"],["風格","ふうかく"],["威厳","いげん"],["貫禄","かんろく"]
     ]},
     { name:"LV.6 ことわざ", perWord:9.5, enter:"ことわざモード突入", words:[
       ["猿も木から落ちる","さるもきからおちる"],
@@ -370,7 +494,25 @@
       ["弘法にも筆の誤り","こうぼうにもふでのあやまり"],
       ["猫に小判","ねこにこばん"],
       ["馬の耳に念仏","うまのみみにねんぶつ"],
-      ["とらぬ狸の皮算用","とらぬたぬきのかわざんよう"]
+      ["とらぬ狸の皮算用","とらぬたぬきのかわざんよう"],
+      ["かっぱの川流れ","かっぱのかわながれ"],
+      ["石橋を叩いて渡る","いしばしをたたいてわたる"],
+      ["三人寄れば文殊の知恵","さんにんよればもんじゅのちえ"],
+      ["井の中の蛙大海を知らず","いのなかのかわずたいかいをしらず"],
+      ["二兎を追う者は一兎をも得ず","にとをおうものはいっとをもえず"],
+      ["口は災いの元","くちはわざわいのもと"],
+      ["棚からぼた餅","たなからぼたもち"],
+      ["餅は餅屋","もちはもちや"],
+      ["花より団子","はなよりだんご"],
+      ["早起きは三文の徳","はやおきはさんもんのとく"],
+      ["習うより慣れろ","ならうよりなれろ"],
+      ["備えあれば憂いなし","そなえあればうれいなし"],
+      ["壁に耳あり障子に目あり","かべにみみありしょうじにめあり"],
+      ["情けは人の為ならず","なさけはひとのためならず"],
+      ["三日坊主","みっかぼうず"],
+      ["雨降って地固まる","あめふってじかたまる"],
+      ["終わり良ければ全て良し","おわりよければすべてよし"],
+      ["触らぬ神に祟りなし","さわらぬかみにたたりなし"]
     ]},
     { name:"LV.7 四字熟語", perWord:4.3, enter:"四字熟語モード突入", words:[
       ["一石二鳥","いっせきにちょう"],
@@ -390,7 +532,13 @@
       ["公明正大","こうめいせいだい"],
       ["日進月歩","にっしんげっぽ"],
       ["言語道断","ごんごどうだん"],
-      ["初志貫徹","しょしかんてつ"]
+      ["初志貫徹","しょしかんてつ"],
+      ["花鳥風月","かちょうふうげつ"],["森羅万象","しんらばんしょう"],["優柔不断","ゆうじゅうふだん"],
+      ["温厚篤実","おんこうとくじつ"],["質実剛健","しつじつごうけん"],["波瀾万丈","はらんばんじょう"],
+      ["大同小異","だいどうしょうい"],["異口同音","いくどうおん"],["切磋琢磨","せっさたくま"],
+      ["不言実行","ふげんじっこう"],["有言実行","ゆうげんじっこう"],["古今東西","ここんとうざい"],
+      ["唯一無二","ゆいいつむに"],["創意工夫","そういくふう"],["博学多才","はくがくたさい"],
+      ["朝三暮四","ちょうさんぼし"],["青天霹靂","せいてんへきれき"],["弱肉強食","じゃくにくきょうしょく"]
     ]},
     { name:"LV.8 歴史人物", perWord:5.0, enter:"歴史クイズモード突入", words:[
       ["卑弥呼","ひみこ"],
@@ -415,7 +563,15 @@
       ["樋口一葉","ひぐちいちよう"],
       ["紫式部","むらさきしきぶ"],
       ["清少納言","せいしょうなごん"],
-      ["北条政子","ほうじょうまさこ"]
+      ["北条政子","ほうじょうまさこ"],
+      ["聖武天皇","しょうむてんのう"],["桓武天皇","かんむてんのう"],["菅原道真","すがわらのみちざね"],
+      ["平将門","たいらのまさかど"],["源義経","みなもとのよしつね"],["北条時宗","ほうじょうときむね"],
+      ["足利義満","あしかがよしみつ"],["明智光秀","あけちみつひで"],["石田三成","いしだみつなり"],
+      ["真田幸村","さなだゆきむら"],["徳川吉宗","とくがわよしむね"],["近藤勇","こんどういさみ"],
+      ["土方歳三","ひじかたとしぞう"],["岩倉具視","いわくらともみ"],["大久保利通","おおくぼとしみち"],
+      ["木戸孝允","きどたかよし"],["渋沢栄一","しぶさわえいいち"],["新渡戸稲造","にとべいなぞう"],
+      ["与謝野晶子","よさのあきこ"],["津田梅子","つだうめこ"],["北里柴三郎","きたさとしばさぶろう"],
+      ["中大兄皇子","なかのおおえのおうじ"],["小野妹子","おののいもこ"],["行基","ぎょうき"]
     ]},
     { name:"LV.9 中学用語", perWord:4.2, enter:"中学用語モード突入", words:[
       ["光合成","こうごうせい"],["細胞","さいぼう"],["遺伝子","いでんし"],["生態系","せいたいけい"],
@@ -424,7 +580,14 @@
       ["内閣","ないかく"],["裁判所","さいばんしょ"],["選挙権","せんきょけん"],["憲法","けんぽう"],
       ["条約","じょうやく"],["需要と供給","じゅようときょうきゅう"],["株式会社","かぶしきがいしゃ"],["方程式","ほうていしき"],
       ["関数","かんすう"],["比例","ひれい"],["反比例","はんぴれい"],["平方根","へいほうこん"],
-      ["素因数分解","そいんすうぶんかい"],["化学反応","かがくはんのう"],["浮力","ふりょく"],["慣性の法則","かんせいのほうそく"]
+      ["素因数分解","そいんすうぶんかい"],["化学反応","かがくはんのう"],["浮力","ふりょく"],["慣性の法則","かんせいのほうそく"],
+      ["呼吸","こきゅう"],["消化","しょうか"],["血液循環","けつえきじゅんかん"],["免疫","めんえき"],
+      ["遺伝","いでん"],["進化論","しんかろん"],["地層","ちそう"],["火山活動","かざんかつどう"],
+      ["地震","じしん"],["気象観測","きしょうかんそく"],["天体観測","てんたいかんそく"],["万有引力","ばんゆういんりょく"],
+      ["電磁誘導","でんじゆうどう"],["原子","げんし"],["分子","ぶんし"],["元素記号","げんそきごう"],
+      ["周期表","しゅうきひょう"],["中和反応","ちゅうわはんのう"],["議院内閣制","ぎいんないかくせい"],["地方自治","ちほうじち"],
+      ["国際連合","こくさいれんごう"],["貿易摩擦","ぼうえきまさつ"],["為替相場","かわせそうば"],["一次関数","いちじかんすう"],
+      ["二次方程式","にじほうていしき"],["確率","かくりつ"],["証明","しょうめい"],["細胞分裂","さいぼうぶんれつ"]
     ]},
     { name:"LV.10 上級会話", perWord:10.5, enter:"上級会話モード突入", words:[
       ["おはようございます","おはようございます"],
@@ -451,7 +614,32 @@
       ["恐れ入りますが","おそれいりますが"],
       ["承知いたしました","しょうちいたしました"],
       ["ご確認いただけますでしょうか","ごかくにんいただけますでしょうか"],
-      ["お手数をおかけします","おてすうをおかけします"]
+      ["お手数をおかけします","おてすうをおかけします"],
+      ["お忙しいところ恐縮ですが","おいそがしいところきょうしゅくですが"],
+      ["ご迷惑をおかけして申し訳ございません","ごめいわくをおかけしてもうしわけございません"],
+      ["承知しました","しょうちしました"],
+      ["お手すきの際に","おてすきのさいに"],
+      ["ご都合はいかがでしょうか","ごつごうはいかがでしょうか"],
+      ["心よりお詫び申し上げます","こころよりおわびもうしあげます"],
+      ["大変申し訳ございません","たいへんもうしわけございません"],
+      ["お力添えいただけますと幸いです","おちからぞえいただけますとさいわいです"],
+      ["ご検討のほどよろしくお願いいたします","ごけんとうのほどよろしくおねがいいたします"],
+      ["引き続きよろしくお願いします","ひきつづきよろしくおねがいします"],
+      ["ご不明な点がございましたら","ごふめいなてんがございましたら"],
+      ["何卒よろしくお願い申し上げます","なにとぞよろしくおねがいもうしあげます"],
+      ["お心遣いありがとうございます","おこころづかいありがとうございます"],
+      ["恐縮ですが","きょうしゅくですが"],
+      ["差し支えなければ","さしつかえなければ"],
+      ["念のため確認させてください","ねんのためかくにんさせてください"],
+      ["お先に失礼いたします","おさきにしつれいいたします"],
+      ["ご自愛ください","ごじあいください"],
+      ["お力になれず申し訳ありません","おちからになれずもうしわけありません"],
+      ["今後ともよろしくお願いいたします","こんごともよろしくおねがいいたします"],
+      ["お世話様です","おせわさまです"],
+      ["お先に失礼いたしました","おさきにしつれいいたしました"],
+      ["ありがとうございました","ありがとうございました"],
+      ["失礼いたします","しつれいいたします"],
+      ["お待たせいたしました","おまたせいたしました"]
     ]}
   ];
   const WORDS_PER_LEVEL_UP = 6;
@@ -486,7 +674,7 @@
     'ま':['ma'],'み':['mi'],'む':['mu'],'め':['me'],'も':['mo'],
     'や':['ya'],'ゆ':['yu'],'よ':['yo'],
     'ら':['ra'],'り':['ri'],'る':['ru'],'れ':['re'],'ろ':['ro'],
-    'わ':['wa'],'を':['wo','o'],'ん':['n']
+    'わ':['wa'],'を':['wo','o'],'ん':['n','nn']
   };
 
   function tokenizeYomi(yomi){
@@ -603,7 +791,403 @@
     nicknameInput: document.getElementById('nicknameInput'),
     submitScoreBtn: document.getElementById('submitScoreBtn'),
     submitStatus: document.getElementById('submitStatus'),
+    avatarEmoji: document.getElementById('avatarEmoji'),
+    avatarName: document.getElementById('avatarName'),
+    avatarBar: document.getElementById('avatarBar'),
+    avatarProgressText: document.getElementById('avatarProgressText'),
+    tabScoreBtn: document.getElementById('tabScoreBtn'),
+    tabRpgBtn: document.getElementById('tabRpgBtn'),
+    idleScoreContent: document.getElementById('idleScoreContent'),
+    idleRpgContent: document.getElementById('idleRpgContent'),
+    rpgProgressInfo: document.getElementById('rpgProgressInfo'),
+    rpgContinueBtn: document.getElementById('rpgContinueBtn'),
+    rpgRestartBtn: document.getElementById('rpgRestartBtn'),
+    battleView: document.getElementById('battleView'),
+    battleStageLabel: document.getElementById('battleStageLabel'),
+    playerHpBar: document.getElementById('playerHpBar'),
+    playerHpText: document.getElementById('playerHpText'),
+    enemyEmoji: document.getElementById('enemyEmoji'),
+    enemyName: document.getElementById('enemyName'),
+    enemyHpBar: document.getElementById('enemyHpBar'),
+    enemyHpText: document.getElementById('enemyHpText'),
+    battleTimebar: document.getElementById('battleTimebar'),
+    battleKanji: document.getElementById('battleKanji'),
+    battleYomi: document.getElementById('battleYomi'),
+    battleTrack: document.getElementById('battleTrack'),
+    battleOverView: document.getElementById('battleOverView'),
+    battleOverSub: document.getElementById('battleOverSub'),
+    battleRetryBtn: document.getElementById('battleRetryBtn'),
+    battleQuitBtn: document.getElementById('battleQuitBtn'),
+    battleClearView: document.getElementById('battleClearView'),
+    battleClearSub: document.getElementById('battleClearSub'),
+    battleClearBackBtn: document.getElementById('battleClearBackBtn'),
   };
+
+  // ---------- アバター成長（累積正解数、localStorage永続化） ----------
+  const AVATAR_STORAGE_KEY = 'typedrill_avatar_stats';
+  const AVATAR_STAGES = [
+    { threshold: 0, emoji: '🥚', name: 'たまご' },
+    { threshold: 50, emoji: '🐣', name: 'ひよこ' },
+    { threshold: 150, emoji: '🐤', name: 'わかどり' },
+    { threshold: 350, emoji: '🦅', name: 'わし' },
+    { threshold: 700, emoji: '🐉', name: 'りゅう' },
+    { threshold: 1500, emoji: '👑', name: 'でんせつ' }
+  ];
+
+  function loadAvatarStats(){
+    try{
+      const raw = localStorage.getItem(AVATAR_STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return { totalCorrect: 0 };
+  }
+  function saveAvatarStats(stats){
+    try{ localStorage.setItem(AVATAR_STORAGE_KEY, JSON.stringify(stats)); }catch(e){}
+  }
+  let avatarStats = loadAvatarStats();
+
+  function getAvatarStage(totalCorrect){
+    let stageIndex = 0;
+    for(let i=0;i<AVATAR_STAGES.length;i++){
+      if(totalCorrect >= AVATAR_STAGES[i].threshold) stageIndex = i;
+    }
+    const stage = AVATAR_STAGES[stageIndex];
+    const next = AVATAR_STAGES[stageIndex+1];
+    return {
+      stageIndex,
+      emoji: stage.emoji,
+      name: stage.name,
+      nextThreshold: next ? next.threshold : null,
+      progressToNext: next ? (totalCorrect - stage.threshold) / (next.threshold - stage.threshold) : 1
+    };
+  }
+
+  function renderAvatar(){
+    const info = getAvatarStage(avatarStats.totalCorrect);
+    el.avatarEmoji.textContent = info.emoji;
+    el.avatarName.textContent = info.name;
+    const pct = Math.max(0, Math.min(100, Math.round(info.progressToNext*100)));
+    el.avatarBar.style.width = pct + '%';
+    el.avatarProgressText.textContent = info.nextThreshold ? `${avatarStats.totalCorrect}/${info.nextThreshold}` : 'MAX';
+  }
+
+  function triggerAvatarEvolution(){
+    sfx.levelUp();
+    el.avatarEmoji.classList.remove('evolve'); void el.avatarEmoji.offsetWidth; el.avatarEmoji.classList.add('evolve');
+    el.lvlFlash.classList.remove('play'); void el.lvlFlash.offsetWidth; el.lvlFlash.classList.add('play');
+    el.lvlBanner.textContent = 'アバター進化！';
+    el.lvlBanner.classList.remove('play'); void el.lvlBanner.offsetWidth; el.lvlBanner.classList.add('play');
+    particleBurst();
+  }
+
+  function addAvatarProgress(n){
+    if(!n || n <= 0) return;
+    const prevStage = getAvatarStage(avatarStats.totalCorrect).stageIndex;
+    avatarStats.totalCorrect += n;
+    saveAvatarStats(avatarStats);
+    const newStage = getAvatarStage(avatarStats.totalCorrect).stageIndex;
+    renderAvatar();
+    if(newStage > prevStage) triggerAvatarEvolution();
+  }
+
+  // ---------- RPGモード（キャンペーン形式、HPバトル） ----------
+  const RPG_PROGRESS_KEY = 'typedrill_rpg_progress';
+  const RPG_MAX_HP = 100;
+  const RPG_MISS_DAMAGE = { normal: 10, boss: 18, midboss: 22, finalboss: 26 };
+  const RPG_TIER_LABEL = { boss:'BOSS', midboss:'MID BOSS', finalboss:'LAST BOSS' };
+
+  const RPG_STAGES = [
+    { enemies:[{name:'スライム',emoji:'🟢',hp:30},{name:'ねずみ',emoji:'🐭',hp:35}] },
+    { enemies:[{name:'コウモリ',emoji:'🦇',hp:35},{name:'ゴブリン',emoji:'👺',hp:40}] },
+    { enemies:[{name:'おおかみ',emoji:'🐺',hp:40},{name:'さそり',emoji:'🦂',hp:45}] },
+    { enemies:[{name:'岩の番人',emoji:'🗿',hp:45}], boss:{name:'苦悩のゴーレム',emoji:'🪨',hp:150,tier:'boss'} },
+    { enemies:[{name:'シャドウ',emoji:'👤',hp:50},{name:'鬼',emoji:'👹',hp:55}] },
+    { enemies:[{name:'古老の亡霊',emoji:'👻',hp:55},{name:'言霊の精',emoji:'🌀',hp:60}] },
+    { enemies:[{name:'四字の門番',emoji:'⛩️',hp:60}], boss:{name:'四字熟語の番人',emoji:'🐲',hp:250,tier:'midboss'} },
+    { enemies:[{name:'さまよう武者',emoji:'⚔️',hp:65},{name:'亡霊武将',emoji:'🥷',hp:70}] },
+    { enemies:[{name:'知識のゴーレム',emoji:'📚',hp:70},{name:'試験の悪霊',emoji:'😈',hp:75}] },
+    { enemies:[{name:'言葉の使者',emoji:'📜',hp:80}], boss:{name:'言霊皇帝',emoji:'👑',hp:400,tier:'finalboss'} }
+  ];
+
+  function loadRpgProgress(){
+    try{
+      const raw = localStorage.getItem(RPG_PROGRESS_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return { clearedStageIndex: -1 };
+  }
+  function saveRpgProgress(){ try{ localStorage.setItem(RPG_PROGRESS_KEY, JSON.stringify(rpgProgress)); }catch(e){} }
+  let rpgProgress = loadRpgProgress();
+
+  let mode = 'score';
+  let rpgStageIndex = 0;
+  let rpgEncounterIndex = 0;
+  let rpgEnemy = null;
+  let rpgPlayerHP = RPG_MAX_HP;
+  let rpgCurrent = null;
+  let rpgTyped = '';
+  let rpgStreak = 0;
+  let rpgWordTimerRAF = null;
+  let rpgWordDeadline = 0;
+  let rpgCorrectCount = 0;
+  let rpgMissGraceUntil = 0;
+
+  function renderRpgHome(){
+    const cleared = rpgProgress.clearedStageIndex;
+    if(cleared < 0){
+      el.rpgProgressInfo.textContent = '冒険はまだ始まっていません。ステージ1から挑戦しよう。';
+      el.rpgContinueBtn.textContent = 'ぼうけんを始める';
+    } else if(cleared >= RPG_STAGES.length-1){
+      el.rpgProgressInfo.textContent = '🏆 キャンペーンをクリア済みです！';
+      el.rpgContinueBtn.textContent = 'もう一度挑戦する';
+    } else {
+      const nextStage = cleared+1;
+      el.rpgProgressInfo.textContent = `クリア済み: ステージ${cleared+1} (${LEVELS[cleared].name})\n次は ステージ${nextStage+1} (${LEVELS[nextStage].name})`;
+      el.rpgContinueBtn.textContent = 'つづきから';
+    }
+  }
+
+  function switchMode(newMode){
+    mode = newMode;
+    el.tabScoreBtn.classList.toggle('active', mode==='score');
+    el.tabRpgBtn.classList.toggle('active', mode==='rpg');
+    el.idleScoreContent.style.display = mode==='score' ? 'block' : 'none';
+    el.idleRpgContent.style.display = mode==='rpg' ? 'block' : 'none';
+    if(mode==='rpg') renderRpgHome();
+  }
+
+  function rpgPickWord(){
+    const pool = LEVELS[rpgStageIndex].words;
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  function renderBattleWord(){
+    renderWordTrack(el.battleKanji, el.battleYomi, el.battleTrack, rpgCurrent, rpgTyped);
+  }
+
+  function updateHpBars(){
+    const playerPct = Math.max(0, Math.round(rpgPlayerHP/RPG_MAX_HP*100));
+    el.playerHpBar.style.width = playerPct + '%';
+    el.playerHpText.textContent = `${Math.max(0,rpgPlayerHP)}/${RPG_MAX_HP}`;
+    const enemyPct = Math.max(0, Math.round(rpgEnemy.hp/rpgEnemy.maxHp*100));
+    el.enemyHpBar.style.width = enemyPct + '%';
+    el.enemyHpText.textContent = `${Math.max(0,rpgEnemy.hp)}/${rpgEnemy.maxHp}`;
+  }
+
+  function startRpgWordTimer(){
+    const dur = LEVELS[rpgStageIndex].perWord;
+    rpgWordDeadline = performance.now() + dur*1000;
+    el.battleTimebar.style.transition = 'none';
+    el.battleTimebar.style.width = '100%';
+    void el.battleTimebar.offsetWidth;
+    el.battleTimebar.style.transition = `width ${dur}s linear`;
+    el.battleTimebar.style.width = '0%';
+    cancelAnimationFrame(rpgWordTimerRAF);
+    function frame(){
+      const remain = (rpgWordDeadline - performance.now())/1000;
+      if(remain <= 0){ battleTimeout(); return; }
+      rpgWordTimerRAF = requestAnimationFrame(frame);
+    }
+    rpgWordTimerRAF = requestAnimationFrame(frame);
+  }
+
+  function calcBattleDamage(wordObj, streak){
+    const baseLen = wordObj[2][0].length;
+    const mult = Math.min(1 + Math.floor(streak/3)*0.3, 2.5);
+    return Math.round(Math.max(8, baseLen*1.8) * mult);
+  }
+
+  function spawnEnemy(def, tier){
+    rpgEnemy = { name:def.name, emoji:def.emoji, hp:def.hp, maxHp:def.hp, tier: tier||'normal' };
+    el.enemyEmoji.textContent = rpgEnemy.emoji;
+    el.enemyEmoji.classList.remove('defeated');
+    el.enemyName.textContent = rpgEnemy.name + (RPG_TIER_LABEL[rpgEnemy.tier] ? ` [${RPG_TIER_LABEL[rpgEnemy.tier]}]` : '');
+    updateHpBars();
+    if(rpgEnemy.tier !== 'normal'){
+      el.lvlFlash.classList.remove('play'); void el.lvlFlash.offsetWidth; el.lvlFlash.classList.add('play');
+      el.lvlBanner.textContent = RPG_TIER_LABEL[rpgEnemy.tier] + ' 出現！';
+      el.lvlBanner.classList.remove('play'); void el.lvlBanner.offsetWidth; el.lvlBanner.classList.add('play');
+      sfx.levelUp();
+    }
+  }
+
+  function nextEncounter(){
+    rpgEncounterIndex++;
+    const stage = RPG_STAGES[rpgStageIndex];
+    if(rpgEncounterIndex < stage.enemies.length){
+      spawnEnemy(stage.enemies[rpgEncounterIndex], 'normal');
+    } else if(stage.boss && rpgEncounterIndex === stage.enemies.length){
+      spawnEnemy(stage.boss, stage.boss.tier);
+    } else {
+      stageClear();
+      return;
+    }
+    rpgCurrent = rpgPickWord();
+    rpgTyped = '';
+    renderBattleWord();
+    startRpgWordTimer();
+  }
+
+  function defeatEnemy(){
+    cancelAnimationFrame(rpgWordTimerRAF);
+    sfx.bossClear();
+    el.enemyEmoji.classList.add('defeated');
+    setTimeout(()=>{ nextEncounter(); }, 500);
+  }
+
+  function showBattleBanner(text, cb){
+    el.lvlFlash.classList.remove('play'); void el.lvlFlash.offsetWidth; el.lvlFlash.classList.add('play');
+    el.lvlBanner.textContent = text;
+    el.lvlBanner.classList.remove('play'); void el.lvlBanner.offsetWidth; el.lvlBanner.classList.add('play');
+    particleBurst();
+    setTimeout(cb, 900);
+  }
+
+  function stageClear(){
+    addAvatarProgress(rpgCorrectCount);
+    rpgCorrectCount = 0;
+    if(rpgStageIndex > rpgProgress.clearedStageIndex){
+      rpgProgress.clearedStageIndex = rpgStageIndex;
+      saveRpgProgress();
+    }
+    if(rpgStageIndex >= RPG_STAGES.length-1){
+      battleVictory();
+      return;
+    }
+    const clearedStage = rpgStageIndex;
+    rpgStageIndex++;
+    rpgPlayerHP = RPG_MAX_HP;
+    rpgEncounterIndex = -1;
+    el.battleStageLabel.textContent = `STAGE ${rpgStageIndex+1} - ${LEVELS[rpgStageIndex].name}`;
+    showBattleBanner(`STAGE ${clearedStage+1} CLEAR!`, ()=>{ nextEncounter(); });
+  }
+
+  function battleHit(correct){
+    if(correct){
+      rpgStreak++;
+      rpgCorrectCount++;
+      const dmg = calcBattleDamage(rpgCurrent, rpgStreak);
+      rpgEnemy.hp = Math.max(0, rpgEnemy.hp - dmg);
+      sfx.wordDone();
+      el.enemyEmoji.classList.remove('hit'); void el.enemyEmoji.offsetWidth; el.enemyEmoji.classList.add('hit');
+      updateHpBars();
+      if(rpgEnemy.hp <= 0){ defeatEnemy(); return; }
+    } else {
+      rpgStreak = 0;
+      const now = performance.now();
+      if(now < rpgMissGraceUntil){
+        sfx.heartLose();
+        el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
+      } else {
+        rpgMissGraceUntil = now + MISS_GRACE_MS;
+        const dmg = RPG_MISS_DAMAGE[rpgEnemy.tier] || RPG_MISS_DAMAGE.normal;
+        rpgPlayerHP = Math.max(0, rpgPlayerHP - dmg);
+        sfx.heartLose();
+        el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
+        updateHpBars();
+        if(rpgPlayerHP <= 0){ battleGameOver(); return; }
+      }
+    }
+    rpgCurrent = rpgPickWord();
+    rpgTyped = '';
+    renderBattleWord();
+    startRpgWordTimer();
+  }
+
+  function battleTimeout(){
+    if(state !== 'battle') return;
+    cancelAnimationFrame(rpgWordTimerRAF);
+    battleHit(false);
+  }
+
+  function battleSkip(){
+    if(state !== 'battle') return;
+    const val = el.capture.value.replace(/[^\x00-\x7F]/g, '').trim();
+    const wordCorrect = rpgCurrent[2].includes(val);
+    el.capture.value = '';
+    rpgTyped = '';
+    cancelAnimationFrame(rpgWordTimerRAF);
+    battleHit(wordCorrect);
+  }
+
+  function battleProcessInput(){
+    if(state !== 'battle') return;
+    const val = el.capture.value.replace(/[^\x00-\x7F]/g, '');
+    const candidates = rpgCurrent[2];
+    if(val.endsWith(' ')){ battleSkip(); return; }
+    if(val.length > rpgTyped.length){
+      const matches = candidates.filter(c => c.startsWith(val));
+      if(matches.length === 0){
+        el.capture.value = '';
+        rpgTyped = '';
+        cancelAnimationFrame(rpgWordTimerRAF);
+        battleHit(false);
+        return;
+      }
+      sfx.correct();
+    }
+    rpgTyped = val;
+    el.capture.value = val;
+    setCaretEnd();
+    if(candidates.includes(rpgTyped)){
+      el.capture.value = '';
+      rpgTyped = '';
+      cancelAnimationFrame(rpgWordTimerRAF);
+      battleHit(true);
+      return;
+    }
+    renderBattleWord();
+  }
+
+  function battleGameOver(){
+    state = 'done';
+    cancelAnimationFrame(rpgWordTimerRAF);
+    sfx.gameOver();
+    addAvatarProgress(rpgCorrectCount);
+    rpgCorrectCount = 0;
+    el.battleView.style.display = 'none';
+    el.battleOverView.style.display = 'block';
+    el.battleOverSub.textContent = `ステージ${rpgStageIndex+1} (${LEVELS[rpgStageIndex].name}) で たおれた…`;
+  }
+
+  function battleVictory(){
+    state = 'done';
+    el.battleView.style.display = 'none';
+    el.battleClearView.style.display = 'block';
+    el.battleClearSub.textContent = '見事、言霊皇帝を打ち破った！';
+  }
+
+  function startBattle(fromStageIndex){
+    mode = 'rpg';
+    state = 'battle';
+    rpgStageIndex = fromStageIndex;
+    rpgPlayerHP = RPG_MAX_HP;
+    rpgEncounterIndex = -1;
+    rpgStreak = 0;
+    rpgCorrectCount = 0;
+    rpgMissGraceUntil = 0;
+
+    el.idle.style.display = 'none';
+    el.rankingView.style.display = 'none';
+    el.battleOverView.style.display = 'none';
+    el.battleClearView.style.display = 'none';
+    el.battleView.style.display = 'flex';
+    el.battleStageLabel.textContent = `STAGE ${rpgStageIndex+1} - ${LEVELS[rpgStageIndex].name}`;
+
+    el.capture.value = '';
+    el.capture.focus();
+    nextEncounter();
+  }
+
+  function backToRpgHome(){
+    cancelAnimationFrame(rpgWordTimerRAF);
+    state = 'idle';
+    el.battleView.style.display = 'none';
+    el.battleOverView.style.display = 'none';
+    el.battleClearView.style.display = 'none';
+    el.idle.style.display = 'block';
+    renderRpgHome();
+  }
 
   // ---------- スコアランキング（JSONBin.io） ----------
   // https://jsonbin.io で無料アカウントを作成し、bin（初期値 {"scores":[]}）を1つ作成してください。
@@ -725,8 +1309,10 @@
   }
 
   const COMBO_TEXTS = { 5:'絶好調!', 10:'怒涛の連続正解!', 15:'神業!!', 20:'伝説級!!' };
-  const MAX_LIVES = 3;
+  const START_LIVES = 5;
+  const MAX_LIVES_CAP = 10;
   const BOSS_EVERY = 3;
+  const MISS_GRACE_MS = 1200;
 
   let startLevel = 1;
   LEVELS.forEach((lv, i)=>{
@@ -758,7 +1344,8 @@
   let wordTimerRAF = null;
   let wordDeadline = 0;
   let composing = false;
-  let lives = MAX_LIVES;
+  let lives = START_LIVES;
+  let missGraceUntil = 0;
   let isBoss = false;
   let bossStreakCounter = 0;
   let maxCombo = 0;
@@ -767,9 +1354,9 @@
 
   function renderHearts(){
     el.hearts.innerHTML = '';
-    for(let i=0;i<MAX_LIVES;i++){
+    for(let i=0;i<lives;i++){
       const span = document.createElement('span');
-      span.className = 'heart' + (i >= lives ? ' lost' : '');
+      span.className = 'heart';
       span.textContent = '♥';
       el.hearts.appendChild(span);
     }
@@ -784,8 +1371,21 @@
     return false;
   }
 
+  function handleMiss(){
+    correctStreak = 0;
+    mistakesCount++;
+    const now = performance.now();
+    if(now < missGraceUntil){
+      sfx.heartLose();
+      el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
+      return false;
+    }
+    missGraceUntil = now + MISS_GRACE_MS;
+    return loseLife();
+  }
+
   function gainLife(){
-    if(lives >= MAX_LIVES) return;
+    if(lives >= MAX_LIVES_CAP) return;
     lives++;
     sfx.heartGain();
     renderHearts();
@@ -806,7 +1406,7 @@
     else if(maxCombo >= 10) badges.push('⚡ 好調継続');
     if(bossesCleared >= 3) badges.push('\u{1F451} ボスキラー');
     else if(bossesCleared >= 1) badges.push('⚔ ボス撃破');
-    if(lives === MAX_LIVES && wordsAttempted > 0) badges.push('\u{1F6E1} 無傷クリア');
+    if(lives >= MAX_LIVES_CAP) badges.push('\u{1F6E1} ライフ満タン');
     if(level >= MAX_LEVEL) badges.push('\u{1F3C6} 最終レベル到達');
     return badges;
   }
@@ -845,35 +1445,39 @@
     return best;
   }
 
-  function renderWord(){
-    el.kanji.textContent = current[0];
-    el.yomi.textContent = current[1];
-    el.kanji.classList.toggle('boss', isBoss);
-    el.bossTag.style.display = isBoss ? 'block' : 'none';
-    el.stage.classList.toggle('boss-bg', isBoss);
-    const candidates = current[2];
-    const template = pickTemplate(candidates, typed);
+  function renderWordTrack(kanjiEl, yomiEl, trackEl, currentWord, typedStr){
+    kanjiEl.textContent = currentWord[0];
+    yomiEl.textContent = currentWord[1];
+    const candidates = currentWord[2];
+    const template = pickTemplate(candidates, typedStr);
 
     let commonLen = 0;
-    while(commonLen < template.length && commonLen < typed.length && template[commonLen] === typed[commonLen]) commonLen++;
+    while(commonLen < template.length && commonLen < typedStr.length && template[commonLen] === typedStr[commonLen]) commonLen++;
 
-    el.track.innerHTML = '';
-    const maxLen = Math.max(template.length, typed.length);
+    trackEl.innerHTML = '';
+    const maxLen = Math.max(template.length, typedStr.length);
     for(let i=0;i<maxLen;i++){
       const span = document.createElement('span');
-      const c = i < template.length ? template[i] : typed[i];
+      const c = i < template.length ? template[i] : typedStr[i];
       span.className = 'ch' + (c === ' ' ? ' sp' : '');
       span.textContent = c === ' ' ? ' ' : c;
       if(i < commonLen) span.classList.add('correct');
-      else if(i < typed.length) span.classList.add('wrong');
-      if(i === typed.length) span.classList.add('cursor');
-      el.track.appendChild(span);
+      else if(i < typedStr.length) span.classList.add('wrong');
+      if(i === typedStr.length) span.classList.add('cursor');
+      trackEl.appendChild(span);
     }
-    if(typed.length >= maxLen){
+    if(typedStr.length >= maxLen){
       const span = document.createElement('span');
       span.className = 'ch cursor'; span.textContent = ' ';
-      el.track.appendChild(span);
+      trackEl.appendChild(span);
     }
+  }
+
+  function renderWord(){
+    el.kanji.classList.toggle('boss', isBoss);
+    el.bossTag.style.display = isBoss ? 'block' : 'none';
+    el.stage.classList.toggle('boss-bg', isBoss);
+    renderWordTrack(el.kanji, el.yomi, el.track, current, typed);
   }
 
   function updateGauges(){
@@ -982,9 +1586,7 @@
       }
       bossStreakCounter++;
     } else {
-      correctStreak = 0;
-      mistakesCount++;
-      if(loseLife()) return;
+      if(handleMiss()) return;
     }
     updateComboLabel();
     isBoss = bossStreakCounter >= BOSS_EVERY;
@@ -1004,7 +1606,7 @@
     level = startLevel;
     typed = ''; wordsCompleted = 0; wordsAttempted = 0; correctWordsTotal = 0;
     correctStreak = 0; correctWordsThisLevel = 0; score = 0; timeLeft = 60;
-    lives = MAX_LIVES; isBoss = false; bossStreakCounter = 0; maxCombo = 0;
+    lives = START_LIVES; missGraceUntil = 0; isBoss = false; bossStreakCounter = 0; maxCombo = 0;
     bossesCleared = 0; mistakesCount = 0;
     current = pickWord();
 
@@ -1049,6 +1651,7 @@
     el.grade.textContent = grade + ' ランク';
     el.gradeSub.textContent = `到達 ${LEVELS[level-1].name} ・ ${wpm} 完了/分 ・ 正解率 ${acc}% ・ スコア ${score}` + (outOfLives ? ' ・ ライフ切れ' : '');
     renderBadges();
+    addAvatarProgress(correctWordsTotal);
 
     lastRunSummary = {
       score,
@@ -1064,14 +1667,19 @@
   function resetToIdle(){
     clearInterval(timerId);
     cancelAnimationFrame(wordTimerRAF);
+    cancelAnimationFrame(rpgWordTimerRAF);
     state = 'idle';
     el.play.style.display = 'none';
     el.result.style.display = 'none';
     el.rankingView.style.display = 'none';
+    el.battleView.style.display = 'none';
+    el.battleOverView.style.display = 'none';
+    el.battleClearView.style.display = 'none';
     el.idle.style.display = 'block';
     timeLeft = 60;
     wordsCompleted = 0; wordsAttempted = 0; correctWordsTotal = 0; score = 0;
     updateGauges();
+    if(mode === 'rpg') renderRpgHome();
   }
 
   function setCaretEnd(){
@@ -1125,13 +1733,16 @@
   }
 
   el.capture.addEventListener('compositionstart', ()=>{ composing = true; });
-  el.capture.addEventListener('compositionend', ()=>{ composing = false; processInput(); });
-  el.capture.addEventListener('input', (e)=>{ if(e.isComposing || composing) return; processInput(); });
+  el.capture.addEventListener('compositionend', ()=>{ composing = false; if(state==='battle') battleProcessInput(); else processInput(); });
+  el.capture.addEventListener('input', (e)=>{ if(e.isComposing || composing) return; if(state==='battle') battleProcessInput(); else processInput(); });
   el.capture.addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter' && state === 'playing'){ e.preventDefault(); skipWord(); }
+    if(e.key === 'Enter'){
+      if(state === 'playing'){ e.preventDefault(); skipWord(); }
+      else if(state === 'battle'){ e.preventDefault(); battleSkip(); }
+    }
   });
 
-  el.stage.addEventListener('click', ()=>{ if(state === 'playing') el.capture.focus(); });
+  el.stage.addEventListener('click', ()=>{ if(state === 'playing' || state === 'battle') el.capture.focus(); });
   el.startBtn.addEventListener('click', startGame);
   el.retryBtn.addEventListener('click', startGame);
   el.resetBtn.addEventListener('click', resetToIdle);
@@ -1140,13 +1751,31 @@
   el.submitScoreBtn.addEventListener('click', submitScore);
   el.nicknameInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') submitScore(); });
 
+  el.tabScoreBtn.addEventListener('click', ()=>switchMode('score'));
+  el.tabRpgBtn.addEventListener('click', ()=>switchMode('rpg'));
+  el.rpgContinueBtn.addEventListener('click', ()=>{
+    const cleared = rpgProgress.clearedStageIndex;
+    const startIndex = cleared >= RPG_STAGES.length-1 ? 0 : Math.min(cleared+1, RPG_STAGES.length-1);
+    startBattle(startIndex);
+  });
+  el.rpgRestartBtn.addEventListener('click', ()=>{
+    rpgProgress.clearedStageIndex = -1;
+    saveRpgProgress();
+    startBattle(0);
+  });
+  el.battleRetryBtn.addEventListener('click', ()=> startBattle(rpgStageIndex));
+  el.battleQuitBtn.addEventListener('click', backToRpgHome);
+  el.battleClearBackBtn.addEventListener('click', backToRpgHome);
+
   document.addEventListener('keydown', (e)=>{
     const rankingOpen = el.rankingView.style.display !== 'none';
     if(e.key === 'Escape'){ resetToIdle(); return; }
-    if(state === 'idle' && !rankingOpen){ startGame(); }
+    if(state === 'idle' && !rankingOpen && mode === 'score'){ startGame(); }
   });
 
   updateGauges();
+  renderAvatar();
+  switchMode('score');
 })();
 </script>
 </body>
