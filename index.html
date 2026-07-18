@@ -46,6 +46,24 @@
   .avatar-bar-wrap{ width:90px; height:4px; background:var(--line); }
   .avatar-bar{ height:100%; background:var(--accent-2); width:0%; transition:width .3s ease; }
   .avatar-progress{ font-size:10px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .avatar-reset-btn{
+    background:none; border:none; color:var(--accent-2); font-family:inherit; font-size:10px;
+    letter-spacing:0.5px; text-decoration:underline; cursor:pointer; padding:0;
+  }
+  .avatar-reset-btn:hover{ color:var(--accent); }
+
+  .ultimate-row{ display:flex; align-items:center; gap:10px; width:100%; max-width:380px; }
+  .ultimate-info{ flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .ultimate-name{ font-size:11px; color:var(--accent); letter-spacing:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ultimate-bar-wrap{ width:100%; height:8px; background:var(--line); border:1px solid var(--line); }
+  .ultimate-bar{ height:100%; background:linear-gradient(90deg, var(--accent), var(--accent-2)); width:0%; transition:width .25s ease; }
+  .ultimate-btn{
+    background:transparent; border:1px solid var(--line); color:var(--dim);
+    font-family:inherit; font-size:12px; letter-spacing:1px; padding:9px 14px; cursor:pointer; transition:.15s; white-space:nowrap;
+  }
+  .ultimate-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .ultimate-btn:not(:disabled){ border-color:var(--accent); color:var(--accent); box-shadow:0 0 12px rgba(255,180,84,0.4); animation:ultimateReady 1s ease-in-out infinite; }
+  @keyframes ultimateReady{ 0%,100%{ box-shadow:0 0 8px rgba(255,180,84,0.3); } 50%{ box-shadow:0 0 18px rgba(255,180,84,0.7); } }
   .lvl-badge{
     font-family:'Space Grotesk', sans-serif;
     font-size:13px; font-weight:700;
@@ -274,6 +292,7 @@
           <div class="avatar-bar-wrap"><div class="avatar-bar" id="avatarBar"></div></div>
         </div>
         <span class="avatar-progress" id="avatarProgressText">0/50</span>
+        <button class="avatar-reset-btn" id="avatarResetBtn" style="display:none;">生まれ変わる</button>
       </div>
     </div>
     <div class="lvl-badge" id="lvlBadge">LV.1</div>
@@ -361,6 +380,13 @@
         <div class="enemy-name" id="enemyName">スライム</div>
         <div class="hp-bar-wrap enemy"><div class="hp-bar enemy" id="enemyHpBar"></div></div>
         <div class="hp-text" id="enemyHpText">30/30</div>
+      </div>
+      <div class="ultimate-row">
+        <div class="ultimate-info">
+          <div class="ultimate-name" id="ultimateName">???</div>
+          <div class="ultimate-bar-wrap"><div class="ultimate-bar" id="ultimateBar"></div></div>
+        </div>
+        <button class="ultimate-btn" id="ultimateBtn" disabled>必殺技！</button>
       </div>
       <div class="timebar-wrap"><div class="timebar" id="battleTimebar"></div></div>
       <div class="kanji" id="battleKanji">—</div>
@@ -795,6 +821,10 @@
     avatarName: document.getElementById('avatarName'),
     avatarBar: document.getElementById('avatarBar'),
     avatarProgressText: document.getElementById('avatarProgressText'),
+    avatarResetBtn: document.getElementById('avatarResetBtn'),
+    ultimateName: document.getElementById('ultimateName'),
+    ultimateBar: document.getElementById('ultimateBar'),
+    ultimateBtn: document.getElementById('ultimateBtn'),
     tabScoreBtn: document.getElementById('tabScoreBtn'),
     tabRpgBtn: document.getElementById('tabRpgBtn'),
     idleScoreContent: document.getElementById('idleScoreContent'),
@@ -823,52 +853,93 @@
     battleClearBackBtn: document.getElementById('battleClearBackBtn'),
   };
 
-  // ---------- アバター成長（累積正解数、localStorage永続化） ----------
+  // ---------- アバター成長（ランダム分岐進化、localStorage永続化） ----------
   const AVATAR_STORAGE_KEY = 'typedrill_avatar_stats';
-  const AVATAR_STAGES = [
-    { threshold: 0, emoji: '🥚', name: 'たまご' },
-    { threshold: 50, emoji: '🐣', name: 'ひよこ' },
-    { threshold: 150, emoji: '🐤', name: 'わかどり' },
-    { threshold: 350, emoji: '🦅', name: 'わし' },
-    { threshold: 700, emoji: '🐉', name: 'りゅう' },
-    { threshold: 1500, emoji: '👑', name: 'でんせつ' }
+  const AVATAR_THRESHOLDS = [0, 50, 150, 350, 700, 1500];
+  // 各段階に複数の候補種があり、しきい値到達時にランダムで1つ選ばれる（以後固定）。
+  // move.type: 'damage'(大ダメージ) / 'drain'(ダメージ+自己回復) / 'guard'(ダメージ+次のミス無効)
+  const AVATAR_TREE = [
+    [ { emoji:'🥚', name:'たまご', move:null } ],
+    [
+      { emoji:'🐣', name:'ひよこ', move:{ name:'とびつきアタック', type:'damage', power:35 } },
+      { emoji:'🐛', name:'いもむし', move:{ name:'どくのいと', type:'drain', power:30 } }
+    ],
+    [
+      { emoji:'🐤', name:'わかどり', move:{ name:'はばたきあらし', type:'damage', power:60 } },
+      { emoji:'🦋', name:'ちょうちょ', move:{ name:'りんぷんシールド', type:'guard', power:45 } },
+      { emoji:'🐍', name:'こへび', move:{ name:'どくがみ', type:'drain', power:55 } }
+    ],
+    [
+      { emoji:'🦅', name:'わし', move:{ name:'げんえいだん', type:'damage', power:100 } },
+      { emoji:'🐺', name:'おおかみ', move:{ name:'ましょうのきば', type:'drain', power:90 } },
+      { emoji:'🐲', name:'こりゅう', move:{ name:'ほのおのいぶき', type:'damage', power:105 } }
+    ],
+    [
+      { emoji:'🐉', name:'りゅう', move:{ name:'りゅうせいこう', type:'damage', power:160 } },
+      { emoji:'🦁', name:'せいじゅう', move:{ name:'おうじゃのほうこう', type:'guard', power:130 } },
+      { emoji:'🦉', name:'けんじゃふくろう', move:{ name:'げんえいまほう', type:'drain', power:140 } }
+    ],
+    [
+      { emoji:'👑', name:'でんせつ', move:{ name:'げんてんかいき', type:'damage', power:260 } },
+      { emoji:'🔥', name:'ほのおのおうじゃ', move:{ name:'だいえんごく', type:'damage', power:270 } },
+      { emoji:'⚡', name:'いかずちのかみ', move:{ name:'らいめいだん', type:'guard', power:220 } },
+      { emoji:'🌊', name:'なみのしはいしゃ', move:{ name:'だいかいしょう', type:'drain', power:230 } },
+      { emoji:'🌌', name:'こだいのせいれい', move:{ name:'ほしのちから', type:'drain', power:240 } }
+    ]
   ];
 
   function loadAvatarStats(){
     try{
       const raw = localStorage.getItem(AVATAR_STORAGE_KEY);
-      if(raw) return JSON.parse(raw);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(typeof parsed.totalCorrect !== 'number') parsed.totalCorrect = 0;
+        if(!Array.isArray(parsed.path) || parsed.path.length === 0) parsed.path = [0];
+        return parsed;
+      }
     }catch(e){}
-    return { totalCorrect: 0 };
+    return { totalCorrect: 0, path: [0] };
   }
-  function saveAvatarStats(stats){
-    try{ localStorage.setItem(AVATAR_STORAGE_KEY, JSON.stringify(stats)); }catch(e){}
-  }
+  function saveAvatarStats(){ try{ localStorage.setItem(AVATAR_STORAGE_KEY, JSON.stringify(avatarStats)); }catch(e){} }
   let avatarStats = loadAvatarStats();
 
-  function getAvatarStage(totalCorrect){
-    let stageIndex = 0;
-    for(let i=0;i<AVATAR_STAGES.length;i++){
-      if(totalCorrect >= AVATAR_STAGES[i].threshold) stageIndex = i;
+  function currentTierIndex(totalCorrect){
+    let idx = 0;
+    for(let i=0;i<AVATAR_THRESHOLDS.length;i++){
+      if(totalCorrect >= AVATAR_THRESHOLDS[i]) idx = i;
     }
-    const stage = AVATAR_STAGES[stageIndex];
-    const next = AVATAR_STAGES[stageIndex+1];
-    return {
-      stageIndex,
-      emoji: stage.emoji,
-      name: stage.name,
-      nextThreshold: next ? next.threshold : null,
-      progressToNext: next ? (totalCorrect - stage.threshold) / (next.threshold - stage.threshold) : 1
-    };
+    return idx;
+  }
+
+  function ensurePathUpTo(tierIdx){
+    let changed = false;
+    while(avatarStats.path.length <= tierIdx){
+      const options = AVATAR_TREE[avatarStats.path.length];
+      avatarStats.path.push(Math.floor(Math.random()*options.length));
+      changed = true;
+    }
+    if(changed) saveAvatarStats();
+  }
+
+  function getCurrentAvatar(){
+    const tierIdx = currentTierIndex(avatarStats.totalCorrect);
+    ensurePathUpTo(tierIdx);
+    const speciesIdx = avatarStats.path[tierIdx];
+    const species = AVATAR_TREE[tierIdx][speciesIdx];
+    return { tierIdx, emoji: species.emoji, name: species.name, move: species.move };
   }
 
   function renderAvatar(){
-    const info = getAvatarStage(avatarStats.totalCorrect);
-    el.avatarEmoji.textContent = info.emoji;
-    el.avatarName.textContent = info.name;
-    const pct = Math.max(0, Math.min(100, Math.round(info.progressToNext*100)));
-    el.avatarBar.style.width = pct + '%';
-    el.avatarProgressText.textContent = info.nextThreshold ? `${avatarStats.totalCorrect}/${info.nextThreshold}` : 'MAX';
+    const avatar = getCurrentAvatar();
+    const nextThreshold = avatar.tierIdx+1 < AVATAR_THRESHOLDS.length ? AVATAR_THRESHOLDS[avatar.tierIdx+1] : null;
+    const prevThreshold = AVATAR_THRESHOLDS[avatar.tierIdx];
+    const pct = nextThreshold ? (avatarStats.totalCorrect-prevThreshold)/(nextThreshold-prevThreshold) : 1;
+    el.avatarEmoji.textContent = avatar.emoji;
+    el.avatarName.textContent = avatar.name;
+    el.avatarBar.style.width = Math.max(0, Math.min(100, Math.round(pct*100))) + '%';
+    el.avatarProgressText.textContent = nextThreshold ? `${avatarStats.totalCorrect}/${nextThreshold}` : 'MAX';
+    const isFinal = avatar.tierIdx === AVATAR_TREE.length-1;
+    el.avatarResetBtn.style.display = isFinal ? 'inline' : 'none';
   }
 
   function triggerAvatarEvolution(){
@@ -882,12 +953,18 @@
 
   function addAvatarProgress(n){
     if(!n || n <= 0) return;
-    const prevStage = getAvatarStage(avatarStats.totalCorrect).stageIndex;
+    const prevTier = currentTierIndex(avatarStats.totalCorrect);
     avatarStats.totalCorrect += n;
-    saveAvatarStats(avatarStats);
-    const newStage = getAvatarStage(avatarStats.totalCorrect).stageIndex;
+    saveAvatarStats();
+    const newTier = currentTierIndex(avatarStats.totalCorrect);
     renderAvatar();
-    if(newStage > prevStage) triggerAvatarEvolution();
+    if(newTier > prevTier) triggerAvatarEvolution();
+  }
+
+  function resetAvatar(){
+    avatarStats = { totalCorrect: 0, path: [0] };
+    saveAvatarStats();
+    renderAvatar();
   }
 
   // ---------- RPGモード（キャンペーン形式、HPバトル） ----------
@@ -931,18 +1008,59 @@
   let rpgWordDeadline = 0;
   let rpgCorrectCount = 0;
   let rpgMissGraceUntil = 0;
+  let rpgUltimateCharge = 0;
+  let rpgShieldActive = false;
+  const RPG_ULTIMATE_CHARGE_NEEDED = 8;
+
+  function refreshUltimateButton(){
+    const avatar = getCurrentAvatar();
+    if(!avatar.move){
+      el.ultimateName.textContent = '未解放（アバター未進化）';
+      el.ultimateBtn.textContent = '必殺技';
+      el.ultimateBtn.disabled = true;
+      el.ultimateBar.style.width = '0%';
+      return;
+    }
+    el.ultimateName.textContent = `${avatar.emoji} ${avatar.move.name}`;
+    el.ultimateBtn.textContent = '必殺技！';
+    el.ultimateBtn.disabled = rpgUltimateCharge < RPG_ULTIMATE_CHARGE_NEEDED;
+    el.ultimateBar.style.width = Math.round(rpgUltimateCharge/RPG_ULTIMATE_CHARGE_NEEDED*100) + '%';
+  }
+
+  function useUltimate(){
+    if(state !== 'battle') return;
+    if(rpgUltimateCharge < RPG_ULTIMATE_CHARGE_NEEDED) return;
+    const avatar = getCurrentAvatar();
+    if(!avatar.move) return;
+    const move = avatar.move;
+    rpgUltimateCharge = 0;
+    rpgEnemy.hp = Math.max(0, rpgEnemy.hp - move.power);
+    if(move.type === 'drain'){
+      rpgPlayerHP = Math.min(RPG_MAX_HP, rpgPlayerHP + Math.round(move.power*0.5));
+    } else if(move.type === 'guard'){
+      rpgShieldActive = true;
+    }
+    sfx.bossClear();
+    el.enemyEmoji.classList.remove('hit'); void el.enemyEmoji.offsetWidth; el.enemyEmoji.classList.add('hit');
+    updateHpBars();
+    refreshUltimateButton();
+    showBattleBanner(`${avatar.emoji} ${move.name}！`, ()=>{});
+    if(rpgEnemy.hp <= 0){ defeatEnemy(); }
+  }
 
   function renderRpgHome(){
     const cleared = rpgProgress.clearedStageIndex;
+    const avatar = getCurrentAvatar();
+    const moveLine = avatar.move ? `\n${avatar.emoji}${avatar.name}の必殺技: ${avatar.move.name}` : '\nアバターが未進化のため必殺技はまだ使えません';
     if(cleared < 0){
-      el.rpgProgressInfo.textContent = '冒険はまだ始まっていません。ステージ1から挑戦しよう。';
+      el.rpgProgressInfo.textContent = '冒険はまだ始まっていません。ステージ1から挑戦しよう。' + moveLine;
       el.rpgContinueBtn.textContent = 'ぼうけんを始める';
     } else if(cleared >= RPG_STAGES.length-1){
-      el.rpgProgressInfo.textContent = '🏆 キャンペーンをクリア済みです！';
+      el.rpgProgressInfo.textContent = '🏆 キャンペーンをクリア済みです！' + moveLine;
       el.rpgContinueBtn.textContent = 'もう一度挑戦する';
     } else {
       const nextStage = cleared+1;
-      el.rpgProgressInfo.textContent = `クリア済み: ステージ${cleared+1} (${LEVELS[cleared].name})\n次は ステージ${nextStage+1} (${LEVELS[nextStage].name})`;
+      el.rpgProgressInfo.textContent = `クリア済み: ステージ${cleared+1} (${LEVELS[cleared].name})\n次は ステージ${nextStage+1} (${LEVELS[nextStage].name})` + moveLine;
       el.rpgContinueBtn.textContent = 'つづきから';
     }
   }
@@ -1066,6 +1184,8 @@
     if(correct){
       rpgStreak++;
       rpgCorrectCount++;
+      rpgUltimateCharge = Math.min(RPG_ULTIMATE_CHARGE_NEEDED, rpgUltimateCharge+1);
+      refreshUltimateButton();
       const dmg = calcBattleDamage(rpgCurrent, rpgStreak);
       rpgEnemy.hp = Math.max(0, rpgEnemy.hp - dmg);
       sfx.wordDone();
@@ -1074,18 +1194,26 @@
       if(rpgEnemy.hp <= 0){ defeatEnemy(); return; }
     } else {
       rpgStreak = 0;
-      const now = performance.now();
-      if(now < rpgMissGraceUntil){
-        sfx.heartLose();
+      rpgUltimateCharge = 0;
+      refreshUltimateButton();
+      if(rpgShieldActive){
+        rpgShieldActive = false;
+        sfx.correct();
         el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
       } else {
-        rpgMissGraceUntil = now + MISS_GRACE_MS;
-        const dmg = RPG_MISS_DAMAGE[rpgEnemy.tier] || RPG_MISS_DAMAGE.normal;
-        rpgPlayerHP = Math.max(0, rpgPlayerHP - dmg);
-        sfx.heartLose();
-        el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
-        updateHpBars();
-        if(rpgPlayerHP <= 0){ battleGameOver(); return; }
+        const now = performance.now();
+        if(now < rpgMissGraceUntil){
+          sfx.heartLose();
+          el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
+        } else {
+          rpgMissGraceUntil = now + MISS_GRACE_MS;
+          const dmg = RPG_MISS_DAMAGE[rpgEnemy.tier] || RPG_MISS_DAMAGE.normal;
+          rpgPlayerHP = Math.max(0, rpgPlayerHP - dmg);
+          sfx.heartLose();
+          el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
+          updateHpBars();
+          if(rpgPlayerHP <= 0){ battleGameOver(); return; }
+        }
       }
     }
     rpgCurrent = rpgPickWord();
@@ -1166,6 +1294,8 @@
     rpgStreak = 0;
     rpgCorrectCount = 0;
     rpgMissGraceUntil = 0;
+    rpgUltimateCharge = 0;
+    rpgShieldActive = false;
 
     el.idle.style.display = 'none';
     el.rankingView.style.display = 'none';
@@ -1173,6 +1303,7 @@
     el.battleClearView.style.display = 'none';
     el.battleView.style.display = 'flex';
     el.battleStageLabel.textContent = `STAGE ${rpgStageIndex+1} - ${LEVELS[rpgStageIndex].name}`;
+    refreshUltimateButton();
 
     el.capture.value = '';
     el.capture.focus();
@@ -1766,6 +1897,8 @@
   });
   el.battleRetryBtn.addEventListener('click', ()=> startBattle(rpgStageIndex));
   el.battleQuitBtn.addEventListener('click', backToRpgHome);
+  el.ultimateBtn.addEventListener('click', useUltimate);
+  el.avatarResetBtn.addEventListener('click', resetAvatar);
   el.battleClearBackBtn.addEventListener('click', backToRpgHome);
 
   document.addEventListener('keydown', (e)=>{
