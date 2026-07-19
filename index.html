@@ -18,6 +18,7 @@
     --accent: #ffb454;
     --accent-2: #5ee6b0;
     --error: #ff6b5e;
+    --epic: #b98aff;
   }
   *{ box-sizing:border-box; }
   html,body{ height:100%; }
@@ -206,7 +207,30 @@
     font-family:inherit; font-size:13px; letter-spacing:1px; padding:10px 20px; cursor:pointer; transition:.15s;
   }
   .mode-tab.active{ border-color:var(--accent); color:var(--accent); }
-  .rpg-progress-info{ text-align:center; font-size:13px; color:var(--dim); margin-bottom:20px; line-height:1.9; white-space:pre-line; }
+  .rpg-progress-info{ text-align:center; font-size:13px; color:var(--dim); margin-bottom:8px; line-height:1.9; white-space:pre-line; }
+
+  .player-stats-row{ display:flex; gap:14px; justify-content:center; font-size:11px; color:var(--dim); letter-spacing:1px; margin-bottom:14px; font-variant-numeric:tabular-nums; }
+  .hp-block .player-stats-row{ justify-content:flex-end; margin-bottom:0; margin-top:2px; }
+
+  .equip-slots{ display:flex; gap:10px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
+  .equip-slot{
+    border:1px solid var(--line); padding:10px 16px; min-width:160px; text-align:center;
+    font-size:12px; color:var(--dim); display:flex; flex-direction:column; gap:6px;
+  }
+  .equip-inventory-grouped{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+  .equip-group{ width:100%; max-width:420px; }
+  .equip-group-title{ font-size:11px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; text-align:center; }
+  .equip-item{
+    display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center;
+    background:var(--panel); border:1px solid var(--line); padding:8px 12px; margin-bottom:6px; font-size:12px;
+  }
+  .equip-item .equip-name{ font-weight:700; }
+  .equip-item .equip-meta{ color:var(--dim); font-size:10px; letter-spacing:0.5px; }
+  .equip-item.rarity-normal .equip-name{ color:var(--dim); }
+  .equip-item.rarity-rare .equip-name{ color:var(--accent-2); }
+  .equip-item.rarity-epic .equip-name{ color:var(--epic); }
+  .equip-item.rarity-legendary .equip-name{ color:var(--accent); }
+  .equip-empty{ text-align:center; color:var(--dim); font-size:12px; padding:10px 0; }
 
   .battle-stage-label{ font-size:11px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; }
   .hp-row{ width:100%; max-width:380px; }
@@ -417,9 +441,36 @@
       <div id="idleRpgContent" style="display:none;">
         <div class="idle-title">冒険の記録</div>
         <div class="rpg-progress-info" id="rpgProgressInfo">まだ冒険を始めていません</div>
+        <div class="player-stats-row">
+          <span id="rpgHomeLevelText">Lv.1</span>
+          <span id="rpgHomeAtkText">ATK 10</span>
+          <span id="rpgHomeDefText">DEF 5</span>
+        </div>
         <div style="text-align:center; display:flex; gap:10px; justify-content:center;">
           <button class="overlay-btn" id="rpgContinueBtn">ぼうけんを始める</button>
           <button class="rank-btn" id="rpgRestartBtn">最初から</button>
+          <button class="rank-btn" id="rpgEquipBtn">そうび</button>
+        </div>
+      </div>
+
+      <div id="rpgEquipView" style="display:none;">
+        <div class="idle-title">そうび</div>
+        <div class="equip-slots">
+          <div class="equip-slot" id="equipSlotWeapon"></div>
+          <div class="equip-slot" id="equipSlotArmor"></div>
+        </div>
+        <div class="equip-inventory-grouped">
+          <div class="equip-group">
+            <div class="equip-group-title">ぶき</div>
+            <div id="equipListWeapon"></div>
+          </div>
+          <div class="equip-group">
+            <div class="equip-group-title">ぼうぐ</div>
+            <div id="equipListArmor"></div>
+          </div>
+        </div>
+        <div style="text-align:center; margin-top:14px;">
+          <button class="rank-btn" id="rpgEquipBackBtn">戻る</button>
         </div>
       </div>
 
@@ -480,6 +531,11 @@
           <div class="hp-label">YOU</div>
           <div class="hp-bar-wrap"><div class="hp-bar player" id="playerHpBar"></div></div>
           <div class="hp-text" id="playerHpText">100/100</div>
+          <div class="player-stats-row">
+            <span id="playerLevelText">Lv.1</span>
+            <span id="playerAtkText">ATK 10</span>
+            <span id="playerDefText">DEF 5</span>
+          </div>
         </div>
       </div>
       <div class="enemy-block">
@@ -1028,6 +1084,16 @@
     rpgProgressInfo: document.getElementById('rpgProgressInfo'),
     rpgContinueBtn: document.getElementById('rpgContinueBtn'),
     rpgRestartBtn: document.getElementById('rpgRestartBtn'),
+    rpgEquipBtn: document.getElementById('rpgEquipBtn'),
+    rpgEquipView: document.getElementById('rpgEquipView'),
+    equipSlotWeapon: document.getElementById('equipSlotWeapon'),
+    equipSlotArmor: document.getElementById('equipSlotArmor'),
+    equipListWeapon: document.getElementById('equipListWeapon'),
+    equipListArmor: document.getElementById('equipListArmor'),
+    rpgEquipBackBtn: document.getElementById('rpgEquipBackBtn'),
+    rpgHomeLevelText: document.getElementById('rpgHomeLevelText'),
+    rpgHomeAtkText: document.getElementById('rpgHomeAtkText'),
+    rpgHomeDefText: document.getElementById('rpgHomeDefText'),
     tabOnlineBtn: document.getElementById('tabOnlineBtn'),
     idleOnlineContent: document.getElementById('idleOnlineContent'),
     onlineUnavailableMsg: document.getElementById('onlineUnavailableMsg'),
@@ -1068,6 +1134,9 @@
     battleStageLabel: document.getElementById('battleStageLabel'),
     playerHpBar: document.getElementById('playerHpBar'),
     playerHpText: document.getElementById('playerHpText'),
+    playerLevelText: document.getElementById('playerLevelText'),
+    playerAtkText: document.getElementById('playerAtkText'),
+    playerDefText: document.getElementById('playerDefText'),
     enemyEmoji: document.getElementById('enemyEmoji'),
     enemyName: document.getElementById('enemyName'),
     enemyHpBar: document.getElementById('enemyHpBar'),
@@ -1232,21 +1301,304 @@
 
   // ---------- RPGモード（キャンペーン形式、HPバトル） ----------
   const RPG_PROGRESS_KEY = 'typedrill_rpg_progress';
-  const RPG_MAX_HP = 100;
-  const RPG_MISS_DAMAGE = { normal: 10, boss: 18, midboss: 22, finalboss: 26 };
-  const RPG_TIER_LABEL = { boss:'BOSS', midboss:'MID BOSS', finalboss:'LAST BOSS' };
+  const RPG_TIER_LABEL = { boss:'BOSS', midboss:'MID BOSS', finalboss:'LAST BOSS', hiddenboss:'SECRET BOSS' };
+
+  // ---------- RPGプレイヤーレベル・ステータス制 ----------
+  const RPG_PLAYER_KEY = 'typedrill_rpg_player';
+  const RPG_LEVEL_CAP = 30;
+  const RPG_ATK_DIVISOR = 50;
+  const RPG_DEF_FLOOR_PCT = 0.25;
+
+  function loadRpgPlayer(){
+    try{
+      const raw = localStorage.getItem(RPG_PLAYER_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(typeof parsed.level !== 'number') parsed.level = 1;
+        if(typeof parsed.xp !== 'number') parsed.xp = 0;
+        if(typeof parsed.equippedWeaponId === 'undefined') parsed.equippedWeaponId = null;
+        if(typeof parsed.equippedArmorId === 'undefined') parsed.equippedArmorId = null;
+        return parsed;
+      }
+    }catch(e){}
+    return { level: 1, xp: 0, equippedWeaponId: null, equippedArmorId: null };
+  }
+  function saveRpgPlayer(){ try{ localStorage.setItem(RPG_PLAYER_KEY, JSON.stringify(rpgPlayer)); }catch(e){} }
+  let rpgPlayer = loadRpgPlayer();
+
+  // ---------- RPG装備システム ----------
+  const RPG_INVENTORY_KEY = 'typedrill_rpg_inventory';
+  const RPG_EQUIP_BASELINE = {
+    normal: { atk:3, def:2 }, rare: { atk:6, def:4 }, epic: { atk:10, def:7 }, legendary: { atk:16, def:11 }
+  };
+  const RPG_DROP_CHANCE = { normal:0.20, boss:0.65, midboss:0.75, finalboss:1.0, hiddenboss:1.0 };
+  const RPG_RARITY_WEIGHTS_EARLY = { normal:70, rare:25, epic:5, legendary:0 };
+  const RPG_RARITY_WEIGHTS_MID = { normal:40, rare:40, epic:18, legendary:2 };
+  const RPG_RARITY_WEIGHTS_LATE = { normal:15, rare:40, epic:35, legendary:10 };
+  const RPG_EQUIP_NAMES = {
+    weapon: { normal:'みならいのつるぎ', rare:'はがねのつるぎ', epic:'まほうのつるぎ', legendary:'せいれいのけん' },
+    armor: { normal:'かわのよろい', rare:'くさりかたびら', epic:'まほうのよろい', legendary:'せいれいのよろい' }
+  };
+
+  function loadRpgInventory(){
+    try{
+      const raw = localStorage.getItem(RPG_INVENTORY_KEY);
+      if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+    }catch(e){}
+    return [];
+  }
+  function saveRpgInventory(){ try{ localStorage.setItem(RPG_INVENTORY_KEY, JSON.stringify(rpgInventory)); }catch(e){} }
+  let rpgInventory = loadRpgInventory();
+
+  function rarityWeightsForStage(stageIdx){
+    if(stageIdx <= 2) return RPG_RARITY_WEIGHTS_EARLY;
+    if(stageIdx <= 6) return RPG_RARITY_WEIGHTS_MID;
+    return RPG_RARITY_WEIGHTS_LATE;
+  }
+
+  function rollRarity(stageIdx){
+    const weights = rarityWeightsForStage(stageIdx);
+    const total = weights.normal + weights.rare + weights.epic + weights.legendary;
+    let roll = Math.random() * total;
+    for(const rarity of ['normal','rare','epic','legendary']){
+      if(roll < weights[rarity]) return rarity;
+      roll -= weights[rarity];
+    }
+    return 'normal';
+  }
+
+  function rollEquipmentDrop(enemy, stageIdx){
+    const dropChance = RPG_DROP_CHANCE[enemy.tier] || RPG_DROP_CHANCE.normal;
+    if(Math.random() >= dropChance) return null;
+    const forced = (enemy.tier === 'finalboss' || enemy.tier === 'hiddenboss');
+    const rarity = forced ? 'legendary' : rollRarity(stageIdx);
+    const slot = Math.random() < 0.5 ? 'weapon' : 'armor';
+    const baseline = RPG_EQUIP_BASELINE[rarity][slot === 'weapon' ? 'atk' : 'def'];
+    const scale = 1 + stageIdx*0.15;
+    const statBonus = forced ? Math.round(baseline * scale) : Math.round(baseline * scale * (0.85 + Math.random()*0.3));
+    return {
+      id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+      slot, rarity, statBonus,
+      name: RPG_EQUIP_NAMES[slot][rarity],
+      sourceStage: stageIdx
+    };
+  }
+
+  function addInventoryItem(item){
+    rpgInventory.push(item);
+    saveRpgInventory();
+  }
+
+  function triggerItemDropFX(item){
+    sfx.heartGain();
+    el.lvlFlash.classList.remove('play'); void el.lvlFlash.offsetWidth; el.lvlFlash.classList.add('play');
+    el.lvlBanner.textContent = `アイテムドロップ！ ${item.name}`;
+    el.lvlBanner.classList.remove('play'); void el.lvlBanner.offsetWidth; el.lvlBanner.classList.add('play');
+  }
+
+  function equipItem(id){
+    const item = rpgInventory.find(it => it.id === id);
+    if(!item) return;
+    if(item.slot === 'weapon') rpgPlayer.equippedWeaponId = id;
+    else rpgPlayer.equippedArmorId = id;
+    saveRpgPlayer();
+    renderPlayerStatReadout();
+    renderEquipmentScreen();
+  }
+
+  function unequipItem(slot){
+    if(slot === 'weapon') rpgPlayer.equippedWeaponId = null;
+    else rpgPlayer.equippedArmorId = null;
+    saveRpgPlayer();
+    renderPlayerStatReadout();
+    renderEquipmentScreen();
+  }
+
+  function renderEquipItemRow(item, equippedId){
+    const row = document.createElement('div');
+    row.className = `equip-item rarity-${item.rarity}`;
+    const info = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'equip-name';
+    name.textContent = item.name;
+    const meta = document.createElement('div');
+    meta.className = 'equip-meta';
+    const statLabel = item.slot === 'weapon' ? 'ATK' : 'DEF';
+    meta.textContent = `${statLabel} +${item.statBonus} ・ STAGE${item.sourceStage+1}産`;
+    info.appendChild(name); info.appendChild(meta);
+    const btn = document.createElement('button');
+    btn.className = 'rank-btn';
+    const isEquipped = item.id === equippedId;
+    btn.textContent = isEquipped ? '装備中' : '装備する';
+    btn.disabled = isEquipped;
+    btn.addEventListener('click', ()=> equipItem(item.id));
+    row.appendChild(info); row.appendChild(btn);
+    return row;
+  }
+
+  function renderEquipmentScreen(){
+    const weaponItems = rpgInventory.filter(it => it.slot === 'weapon');
+    const armorItems = rpgInventory.filter(it => it.slot === 'armor');
+
+    const equippedWeapon = rpgInventory.find(it => it.id === rpgPlayer.equippedWeaponId);
+    el.equipSlotWeapon.innerHTML = '';
+    const wLabel = document.createElement('div');
+    wLabel.textContent = equippedWeapon ? `ぶき: ${equippedWeapon.name} (ATK +${equippedWeapon.statBonus})` : 'ぶき: なし';
+    el.equipSlotWeapon.appendChild(wLabel);
+    if(equippedWeapon){
+      const unequipBtn = document.createElement('button');
+      unequipBtn.className = 'rank-btn';
+      unequipBtn.textContent = 'はずす';
+      unequipBtn.addEventListener('click', ()=> unequipItem('weapon'));
+      el.equipSlotWeapon.appendChild(unequipBtn);
+    }
+
+    const equippedArmor = rpgInventory.find(it => it.id === rpgPlayer.equippedArmorId);
+    el.equipSlotArmor.innerHTML = '';
+    const aLabel = document.createElement('div');
+    aLabel.textContent = equippedArmor ? `ぼうぐ: ${equippedArmor.name} (DEF +${equippedArmor.statBonus})` : 'ぼうぐ: なし';
+    el.equipSlotArmor.appendChild(aLabel);
+    if(equippedArmor){
+      const unequipBtn = document.createElement('button');
+      unequipBtn.className = 'rank-btn';
+      unequipBtn.textContent = 'はずす';
+      unequipBtn.addEventListener('click', ()=> unequipItem('armor'));
+      el.equipSlotArmor.appendChild(unequipBtn);
+    }
+
+    el.equipListWeapon.innerHTML = '';
+    if(weaponItems.length === 0){
+      el.equipListWeapon.innerHTML = '<div class="equip-empty">まだ武器を持っていません</div>';
+    } else {
+      weaponItems.forEach(item => el.equipListWeapon.appendChild(renderEquipItemRow(item, rpgPlayer.equippedWeaponId)));
+    }
+
+    el.equipListArmor.innerHTML = '';
+    if(armorItems.length === 0){
+      el.equipListArmor.innerHTML = '<div class="equip-empty">まだ防具を持っていません</div>';
+    } else {
+      armorItems.forEach(item => el.equipListArmor.appendChild(renderEquipItemRow(item, rpgPlayer.equippedArmorId)));
+    }
+  }
+
+  const RPG_TIER_XP_MULT = { normal:0.5, boss:1.2, midboss:1.4, finalboss:1.6, hiddenboss:2.0 };
+  function xpToNextLevel(lv){ return 50 + (lv-1)*35; }
+  function baseHP(lv){ return 100 + (lv-1)*15; }
+  function baseATK(lv){ return 10 + (lv-1)*2; }
+  function baseDEF(lv){ return 5 + (lv-1)*2; }
+
+  function getEquippedBonus(slot){
+    const id = slot === 'weapon' ? rpgPlayer.equippedWeaponId : rpgPlayer.equippedArmorId;
+    if(!id) return 0;
+    const item = rpgInventory.find(it => it.id === id);
+    if(!item) return 0;
+    return item.statBonus || 0;
+  }
+  function getPlayerTotalATK(){ return baseATK(rpgPlayer.level) + getEquippedBonus('weapon'); }
+  function getPlayerTotalDEF(){ return baseDEF(rpgPlayer.level) + getEquippedBonus('armor'); }
+  function getPlayerMaxHP(){ return baseHP(rpgPlayer.level); }
+
+  function triggerRpgLevelUp(){
+    sfx.levelUp();
+    el.lvlFlash.classList.remove('play'); void el.lvlFlash.offsetWidth; el.lvlFlash.classList.add('play');
+    el.lvlBanner.textContent = `LEVEL UP! Lv.${rpgPlayer.level}`;
+    el.lvlBanner.classList.remove('play'); void el.lvlBanner.offsetWidth; el.lvlBanner.classList.add('play');
+    particleBurst();
+  }
+
+  function awardRpgXP(amount){
+    if(!amount || amount <= 0) return false;
+    rpgPlayer.xp += amount;
+    let leveledUp = false;
+    while(rpgPlayer.level < RPG_LEVEL_CAP && rpgPlayer.xp >= xpToNextLevel(rpgPlayer.level)){
+      rpgPlayer.xp -= xpToNextLevel(rpgPlayer.level);
+      rpgPlayer.level++;
+      leveledUp = true;
+    }
+    saveRpgPlayer();
+    if(leveledUp){
+      rpgPlayerHP = getPlayerMaxHP();
+      updateHpBars();
+      triggerRpgLevelUp();
+    }
+    renderPlayerStatReadout();
+    return leveledUp;
+  }
+
+  function levelForStage(idx){ return LEVELS[Math.min(idx, LEVELS.length-1)]; }
+
+  function renderPlayerStatReadout(){
+    const lvText = 'Lv.' + rpgPlayer.level;
+    const atkText = 'ATK ' + getPlayerTotalATK();
+    const defText = 'DEF ' + getPlayerTotalDEF();
+    if(el.playerLevelText) el.playerLevelText.textContent = lvText;
+    if(el.playerAtkText) el.playerAtkText.textContent = atkText;
+    if(el.playerDefText) el.playerDefText.textContent = defText;
+    if(el.rpgHomeLevelText) el.rpgHomeLevelText.textContent = lvText;
+    if(el.rpgHomeAtkText) el.rpgHomeAtkText.textContent = atkText;
+    if(el.rpgHomeDefText) el.rpgHomeDefText.textContent = defText;
+  }
 
   const RPG_STAGES = [
-    { enemies:[{name:'スライム',emoji:'🟢',hp:30},{name:'ねずみ',emoji:'🐭',hp:35}] },
-    { enemies:[{name:'コウモリ',emoji:'🦇',hp:35},{name:'ゴブリン',emoji:'👺',hp:40}] },
-    { enemies:[{name:'おおかみ',emoji:'🐺',hp:40},{name:'さそり',emoji:'🦂',hp:45}] },
-    { enemies:[{name:'岩の番人',emoji:'🗿',hp:45}], boss:{name:'苦悩のゴーレム',emoji:'🪨',hp:150,tier:'boss'} },
-    { enemies:[{name:'シャドウ',emoji:'👤',hp:50},{name:'鬼',emoji:'👹',hp:55}] },
-    { enemies:[{name:'古老の亡霊',emoji:'👻',hp:55},{name:'言霊の精',emoji:'🌀',hp:60}] },
-    { enemies:[{name:'四字の門番',emoji:'⛩️',hp:60}], boss:{name:'四字熟語の番人',emoji:'🐲',hp:250,tier:'midboss'} },
-    { enemies:[{name:'さまよう武者',emoji:'⚔️',hp:65},{name:'亡霊武将',emoji:'🥷',hp:70}] },
-    { enemies:[{name:'知識のゴーレム',emoji:'📚',hp:70},{name:'試験の悪霊',emoji:'😈',hp:75}] },
-    { enemies:[{name:'言葉の使者',emoji:'📜',hp:80}], boss:{name:'言霊皇帝',emoji:'👑',hp:400,tier:'finalboss'} }
+    { enemies:[
+      {name:'スライム',emoji:'🟢',hp:35,atk:8},
+      {name:'ねずみ',emoji:'🐭',hp:35,atk:8},
+      {name:'野犬',emoji:'🐕',hp:35,atk:8}
+    ] },
+    { enemies:[
+      {name:'コウモリ',emoji:'🦇',hp:55,atk:12},
+      {name:'ゴブリン',emoji:'👺',hp:55,atk:12},
+      {name:'毒キノコ',emoji:'🍄',hp:55,atk:12}
+    ] },
+    { enemies:[
+      {name:'おおかみ',emoji:'🐺',hp:80,atk:17},
+      {name:'さそり',emoji:'🦂',hp:80,atk:17},
+      {name:'岩トカゲ',emoji:'🦎',hp:80,atk:17},
+      {name:'森の妖精',emoji:'🧚',hp:80,atk:17}
+    ] },
+    { enemies:[
+      {name:'岩の番人',emoji:'🗿',hp:110,atk:23},
+      {name:'呪われた騎士',emoji:'🛡️',hp:110,atk:23},
+      {name:'洞窟の魔女',emoji:'🧙',hp:110,atk:23}
+    ], boss:{name:'苦悩のゴーレム',emoji:'🪨',hp:480,atk:55,tier:'boss'} },
+    { enemies:[
+      {name:'シャドウ',emoji:'👤',hp:150,atk:30},
+      {name:'鬼',emoji:'👹',hp:150,atk:30},
+      {name:'亡者',emoji:'💀',hp:150,atk:30},
+      {name:'妖魔',emoji:'👿',hp:150,atk:30}
+    ] },
+    { enemies:[
+      {name:'古老の亡霊',emoji:'👻',hp:200,atk:38},
+      {name:'言霊の精',emoji:'🌀',hp:200,atk:38},
+      {name:'呪いの人形',emoji:'🪆',hp:200,atk:38},
+      {name:'迷いの狐',emoji:'🦊',hp:200,atk:38}
+    ] },
+    { enemies:[
+      {name:'四字の門番',emoji:'⛩️',hp:260,atk:47},
+      {name:'古文書の番人',emoji:'📖',hp:260,atk:47},
+      {name:'文字の妖',emoji:'🀄',hp:260,atk:47}
+    ], boss:{name:'四字熟語の番人',emoji:'🐲',hp:900,atk:85,tier:'midboss'} },
+    { enemies:[
+      {name:'さまよう武者',emoji:'⚔️',hp:330,atk:57},
+      {name:'亡霊武将',emoji:'🥷',hp:330,atk:57},
+      {name:'落武者の霊',emoji:'🏯',hp:330,atk:57},
+      {name:'血刀の亡者',emoji:'🗡️',hp:330,atk:57},
+      {name:'怨霊の侍',emoji:'🥋',hp:330,atk:57}
+    ] },
+    { enemies:[
+      {name:'知識のゴーレム',emoji:'📚',hp:410,atk:68},
+      {name:'試験の悪霊',emoji:'😈',hp:410,atk:68},
+      {name:'難問の魔人',emoji:'🧞',hp:410,atk:68},
+      {name:'暗記の呪縛霊',emoji:'📝',hp:410,atk:68},
+      {name:'徹夜の亡霊',emoji:'😵',hp:410,atk:68}
+    ] },
+    { enemies:[
+      {name:'言葉の使者',emoji:'📜',hp:500,atk:80},
+      {name:'皇帝の親衛隊',emoji:'🛡️',hp:500,atk:80},
+      {name:'言霊の守護者',emoji:'🐍',hp:500,atk:80},
+      {name:'深淵の使徒',emoji:'🕯️',hp:500,atk:80}
+    ], boss:{name:'言霊皇帝',emoji:'👑',hp:1800,atk:150,tier:'finalboss'} },
+    { enemies:[], boss:{name:'深淵の言霊神',emoji:'🌑',hp:4500,atk:260,tier:'hiddenboss'} }
   ];
 
   function loadRpgProgress(){
@@ -1263,7 +1615,7 @@
   let rpgStageIndex = 0;
   let rpgEncounterIndex = 0;
   let rpgEnemy = null;
-  let rpgPlayerHP = RPG_MAX_HP;
+  let rpgPlayerHP = getPlayerMaxHP();
   let rpgCurrent = null;
   let rpgTyped = '';
   let rpgStreak = 0;
@@ -1300,7 +1652,7 @@
     rpgUltimateCharge = 0;
     rpgEnemy.hp = Math.max(0, rpgEnemy.hp - move.power);
     if(move.type === 'drain'){
-      rpgPlayerHP = Math.min(RPG_MAX_HP, rpgPlayerHP + Math.round(move.power*0.5));
+      rpgPlayerHP = Math.min(getPlayerMaxHP(), rpgPlayerHP + Math.round(move.power*0.5));
     } else if(move.type === 'guard'){
       rpgShieldActive = true;
     }
@@ -1323,9 +1675,10 @@
       el.rpgContinueBtn.textContent = 'もう一度挑戦する';
     } else {
       const nextStage = cleared+1;
-      el.rpgProgressInfo.textContent = `クリア済み: ステージ${cleared+1} (${LEVELS[cleared].name})\n次は ステージ${nextStage+1} (${LEVELS[nextStage].name})` + moveLine;
+      el.rpgProgressInfo.textContent = `クリア済み: ステージ${cleared+1} (${levelForStage(cleared).name})\n次は ステージ${nextStage+1} (${levelForStage(nextStage).name})` + moveLine;
       el.rpgContinueBtn.textContent = 'つづきから';
     }
+    renderPlayerStatReadout();
   }
 
   function switchMode(newMode){
@@ -1341,7 +1694,7 @@
   }
 
   function rpgPickWord(){
-    const pool = LEVELS[rpgStageIndex].words;
+    const pool = levelForStage(rpgStageIndex).words;
     return pool[Math.floor(Math.random()*pool.length)];
   }
 
@@ -1350,16 +1703,17 @@
   }
 
   function updateHpBars(){
-    const playerPct = Math.max(0, Math.round(rpgPlayerHP/RPG_MAX_HP*100));
+    const playerMaxHp = getPlayerMaxHP();
+    const playerPct = Math.max(0, Math.round(rpgPlayerHP/playerMaxHp*100));
     el.playerHpBar.style.width = playerPct + '%';
-    el.playerHpText.textContent = `${Math.max(0,rpgPlayerHP)}/${RPG_MAX_HP}`;
+    el.playerHpText.textContent = `${Math.max(0,rpgPlayerHP)}/${playerMaxHp}`;
     const enemyPct = Math.max(0, Math.round(rpgEnemy.hp/rpgEnemy.maxHp*100));
     el.enemyHpBar.style.width = enemyPct + '%';
     el.enemyHpText.textContent = `${Math.max(0,rpgEnemy.hp)}/${rpgEnemy.maxHp}`;
   }
 
   function startRpgWordTimer(){
-    const dur = LEVELS[rpgStageIndex].perWord;
+    const dur = levelForStage(rpgStageIndex).perWord;
     rpgWordDeadline = performance.now() + dur*1000;
     el.battleTimebar.style.transition = 'none';
     el.battleTimebar.style.width = '100%';
@@ -1382,7 +1736,7 @@
   }
 
   function spawnEnemy(def, tier){
-    rpgEnemy = { name:def.name, emoji:def.emoji, hp:def.hp, maxHp:def.hp, tier: tier||'normal' };
+    rpgEnemy = { name:def.name, emoji:def.emoji, hp:def.hp, maxHp:def.hp, atk:def.atk, tier: tier||'normal' };
     el.enemyEmoji.textContent = rpgEnemy.emoji;
     el.enemyEmoji.classList.remove('defeated');
     el.enemyName.textContent = rpgEnemy.name + (RPG_TIER_LABEL[rpgEnemy.tier] ? ` [${RPG_TIER_LABEL[rpgEnemy.tier]}]` : '');
@@ -1413,9 +1767,18 @@
   }
 
   function defeatEnemy(){
+    if(rpgEnemy.defeated) return;
+    rpgEnemy.defeated = true;
     cancelAnimationFrame(rpgWordTimerRAF);
     sfx.bossClear();
     el.enemyEmoji.classList.add('defeated');
+    const leveledUp = awardRpgXP(Math.round(rpgEnemy.maxHp * (RPG_TIER_XP_MULT[rpgEnemy.tier] || RPG_TIER_XP_MULT.normal)));
+    const drop = rollEquipmentDrop(rpgEnemy, rpgStageIndex);
+    if(drop){
+      addInventoryItem(drop);
+      if(leveledUp) setTimeout(()=>triggerItemDropFX(drop), 1000);
+      else triggerItemDropFX(drop);
+    }
     setTimeout(()=>{ nextEncounter(); }, 500);
   }
 
@@ -1440,10 +1803,13 @@
     }
     const clearedStage = rpgStageIndex;
     rpgStageIndex++;
-    rpgPlayerHP = RPG_MAX_HP;
+    rpgPlayerHP = getPlayerMaxHP();
     rpgEncounterIndex = -1;
-    el.battleStageLabel.textContent = `STAGE ${rpgStageIndex+1} - ${LEVELS[rpgStageIndex].name}`;
-    showBattleBanner(`STAGE ${clearedStage+1} CLEAR!`, ()=>{ nextEncounter(); });
+    el.battleStageLabel.textContent = `STAGE ${rpgStageIndex+1} - ${levelForStage(rpgStageIndex).name}`;
+    const clearText = clearedStage === 9
+      ? '何かが目覚めた…'
+      : `STAGE ${clearedStage+1} CLEAR!`;
+    showBattleBanner(clearText, ()=>{ nextEncounter(); });
   }
 
   function battleHit(correct){
@@ -1452,7 +1818,7 @@
       rpgCorrectCount++;
       rpgUltimateCharge = Math.min(RPG_ULTIMATE_CHARGE_NEEDED, rpgUltimateCharge+1);
       refreshUltimateButton();
-      const dmg = calcBattleDamage(rpgCurrent, rpgStreak);
+      const dmg = Math.round(calcBattleDamage(rpgCurrent, rpgStreak) * (1 + getPlayerTotalATK()/RPG_ATK_DIVISOR));
       rpgEnemy.hp = Math.max(0, rpgEnemy.hp - dmg);
       sfx.wordDone();
       el.enemyEmoji.classList.remove('hit'); void el.enemyEmoji.offsetWidth; el.enemyEmoji.classList.add('hit');
@@ -1473,7 +1839,10 @@
           el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
         } else {
           rpgMissGraceUntil = now + MISS_GRACE_MS;
-          const dmg = RPG_MISS_DAMAGE[rpgEnemy.tier] || RPG_MISS_DAMAGE.normal;
+          const dmg = Math.max(
+            Math.round(rpgEnemy.atk * RPG_DEF_FLOOR_PCT),
+            Math.round(rpgEnemy.atk - getPlayerTotalDEF()*0.6)
+          );
           rpgPlayerHP = Math.max(0, rpgPlayerHP - dmg);
           sfx.heartLose();
           el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
@@ -1541,21 +1910,21 @@
     rpgCorrectCount = 0;
     el.battleView.style.display = 'none';
     el.battleOverView.style.display = 'block';
-    el.battleOverSub.textContent = `ステージ${rpgStageIndex+1} (${LEVELS[rpgStageIndex].name}) で たおれた…`;
+    el.battleOverSub.textContent = `ステージ${rpgStageIndex+1} (${levelForStage(rpgStageIndex).name}) で たおれた…`;
   }
 
   function battleVictory(){
     state = 'done';
     el.battleView.style.display = 'none';
     el.battleClearView.style.display = 'block';
-    el.battleClearSub.textContent = '見事、言霊皇帝を打ち破った！';
+    el.battleClearSub.textContent = '言霊皇帝すら見えなかった深淵から、真の支配者が姿を現した…そして、ついに打ち破った！';
   }
 
   function startBattle(fromStageIndex){
     mode = 'rpg';
     state = 'battle';
     rpgStageIndex = fromStageIndex;
-    rpgPlayerHP = RPG_MAX_HP;
+    rpgPlayerHP = getPlayerMaxHP();
     rpgEncounterIndex = -1;
     rpgStreak = 0;
     rpgCorrectCount = 0;
@@ -1568,8 +1937,9 @@
     el.battleOverView.style.display = 'none';
     el.battleClearView.style.display = 'none';
     el.battleView.style.display = 'flex';
-    el.battleStageLabel.textContent = `STAGE ${rpgStageIndex+1} - ${LEVELS[rpgStageIndex].name}`;
+    el.battleStageLabel.textContent = `STAGE ${rpgStageIndex+1} - ${levelForStage(rpgStageIndex).name}`;
     refreshUltimateButton();
+    renderPlayerStatReadout();
 
     el.capture.value = '';
     el.capture.focus();
@@ -2639,6 +3009,7 @@
     el.battleClearView.style.display = 'none';
     el.onlineBattleView.style.display = 'none';
     el.onlineOverView.style.display = 'none';
+    el.rpgEquipView.style.display = 'none';
     el.idle.style.display = 'block';
     timeLeft = 60;
     wordsCompleted = 0; wordsAttempted = 0; correctWordsTotal = 0; score = 0;
@@ -2738,6 +3109,15 @@
     rpgProgress.clearedStageIndex = -1;
     saveRpgProgress();
     startBattle(0);
+  });
+  el.rpgEquipBtn.addEventListener('click', ()=>{
+    el.idle.style.display = 'none';
+    el.rpgEquipView.style.display = 'block';
+    renderEquipmentScreen();
+  });
+  el.rpgEquipBackBtn.addEventListener('click', ()=>{
+    el.rpgEquipView.style.display = 'none';
+    el.idle.style.display = 'block';
   });
   el.battleRetryBtn.addEventListener('click', ()=> startBattle(rpgStageIndex));
   el.battleQuitBtn.addEventListener('click', backToRpgHome);
