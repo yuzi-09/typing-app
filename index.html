@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <title>TYPE//DRILL PRO — 日本語タイピング</title>
+<!-- オンライン対戦モード用（Firebase Realtime Database）。読み込みに失敗しても他の機能に影響しない -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" onerror="window.__fbLoadFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js" onerror="window.__fbLoadFailed=true"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
 
@@ -64,6 +67,16 @@
   .ultimate-btn:disabled{ opacity:0.4; cursor:not-allowed; }
   .ultimate-btn:not(:disabled){ border-color:var(--accent); color:var(--accent); box-shadow:0 0 12px rgba(255,180,84,0.4); animation:ultimateReady 1s ease-in-out infinite; }
   @keyframes ultimateReady{ 0%,100%{ box-shadow:0 0 8px rgba(255,180,84,0.3); } 50%{ box-shadow:0 0 18px rgba(255,180,84,0.7); } }
+
+  .vs-row{ display:flex; align-items:center; justify-content:center; gap:24px; width:100%; }
+  .vs-side{ display:flex; flex-direction:column; align-items:center; gap:6px; width:140px; }
+  .vs-label{ font-family:'Space Grotesk', sans-serif; font-weight:800; font-size:20px; color:var(--dim); }
+  .room-code{ color:var(--accent); font-size:22px; letter-spacing:6px; font-weight:800; }
+  #onlineJoinCodeInput{
+    background:var(--bg); border:1px solid var(--line); color:var(--ink);
+    font-family:inherit; font-size:14px; padding:9px 12px; width:100px; text-align:center; text-transform:uppercase;
+  }
+  #onlineJoinCodeInput:focus{ outline:none; border-color:var(--accent); }
   .lvl-badge{
     font-family:'Space Grotesk', sans-serif;
     font-size:13px; font-weight:700;
@@ -313,6 +326,7 @@
       <div class="mode-tabs">
         <button class="mode-tab" id="tabScoreBtn">⚔️ スコアアタック</button>
         <button class="mode-tab" id="tabRpgBtn">🗡️ RPGモード</button>
+        <button class="mode-tab" id="tabOnlineBtn">🌐 オンライン対戦</button>
       </div>
 
       <div id="idleScoreContent">
@@ -331,6 +345,24 @@
         <div style="text-align:center; display:flex; gap:10px; justify-content:center;">
           <button class="overlay-btn" id="rpgContinueBtn">ぼうけんを始める</button>
           <button class="rank-btn" id="rpgRestartBtn">最初から</button>
+        </div>
+      </div>
+
+      <div id="idleOnlineContent" style="display:none;">
+        <div class="idle-title">オンライン対戦</div>
+        <div class="rpg-progress-info" id="onlineUnavailableMsg" style="display:none;"></div>
+        <div id="onlineLobby" style="display:none;">
+          <div class="idle-levels" id="onlineLvlPicks"></div>
+          <div style="text-align:center; display:flex; gap:10px; justify-content:center; align-items:center; margin-top:14px; flex-wrap:wrap;">
+            <button class="overlay-btn" id="onlineCreateBtn">部屋を作る</button>
+            <input type="text" id="onlineJoinCodeInput" placeholder="部屋コード" maxlength="4">
+            <button class="rank-btn" id="onlineJoinBtn">部屋に入る</button>
+          </div>
+          <div class="submit-status" id="onlineJoinStatus"></div>
+        </div>
+        <div id="onlineWaiting" style="display:none;">
+          <div class="rpg-progress-info">部屋コード: <span class="room-code" id="onlineRoomCodeDisplay">----</span><br>相手の入室を待っています…</div>
+          <div style="text-align:center;"><button class="rank-btn" id="onlineCancelBtn">キャンセル</button></div>
         </div>
       </div>
     </div>
@@ -392,7 +424,7 @@
       <div class="kanji" id="battleKanji">—</div>
       <div class="yomi" id="battleYomi">—</div>
       <div class="word-track" id="battleTrack"></div>
-      <div class="hint">正解で攻撃、ミスでダメージ ・ <b>Space</b>で次へスキップ</div>
+      <div class="hint">正解で攻撃、ミスでダメージ ・ <b>Space</b>で次へスキップ ・ <b>Tab</b>で必殺技発動</div>
     </div>
 
     <div id="battleOverView" class="result" style="display:none;">
@@ -408,6 +440,46 @@
       <div class="grade" id="battleClearTitle">CAMPAIGN CLEAR!</div>
       <div class="sub" id="battleClearSub">—</div>
       <button class="overlay-btn" id="battleClearBackBtn">タイトルへ</button>
+    </div>
+
+    <div id="onlineBattleView" style="display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px; width:100%;">
+      <div class="battle-stage-label" id="onlineStageLabel">VS対戦</div>
+      <div class="vs-row">
+        <div class="vs-side">
+          <div class="enemy-emoji" id="onlineMyEmoji">🥚</div>
+          <div class="enemy-name" id="onlineMyName">あなた</div>
+          <div class="hp-bar-wrap enemy"><div class="hp-bar player" id="onlineMyHpBar"></div></div>
+          <div class="hp-text" id="onlineMyHpText">100/100</div>
+        </div>
+        <div class="vs-label">VS</div>
+        <div class="vs-side">
+          <div class="enemy-emoji" id="onlineOppEmoji">🥚</div>
+          <div class="enemy-name" id="onlineOppName">相手</div>
+          <div class="hp-bar-wrap enemy"><div class="hp-bar enemy" id="onlineOppHpBar"></div></div>
+          <div class="hp-text" id="onlineOppHpText">100/100</div>
+        </div>
+      </div>
+      <div class="ultimate-row">
+        <div class="ultimate-info">
+          <div class="ultimate-name" id="onlineUltimateName">???</div>
+          <div class="ultimate-bar-wrap"><div class="ultimate-bar" id="onlineUltimateBar"></div></div>
+        </div>
+        <button class="ultimate-btn" id="onlineUltimateBtn" disabled>必殺技！</button>
+      </div>
+      <div class="timebar-wrap"><div class="timebar" id="onlineTimebar"></div></div>
+      <div class="kanji" id="onlineKanji">—</div>
+      <div class="yomi" id="onlineYomi">—</div>
+      <div class="word-track" id="onlineTrack"></div>
+      <div class="hint">正解で相手にダメージ、ミスはノーダメージ（コンボが切れるだけ） ・ <b>Tab</b>で必殺技発動</div>
+    </div>
+
+    <div id="onlineOverView" class="result" style="display:none;">
+      <div class="grade" id="onlineOverTitle">勝利！</div>
+      <div class="sub" id="onlineOverSub">—</div>
+      <div style="text-align:center; display:flex; gap:10px; justify-content:center;">
+        <button class="overlay-btn" id="onlineRematchBtn">もう一度</button>
+        <button class="rank-btn" id="onlineQuitBtn">タイトルへ</button>
+      </div>
     </div>
 
     <input class="capture" id="capture" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="url" lang="en">
@@ -832,6 +904,40 @@
     rpgProgressInfo: document.getElementById('rpgProgressInfo'),
     rpgContinueBtn: document.getElementById('rpgContinueBtn'),
     rpgRestartBtn: document.getElementById('rpgRestartBtn'),
+    tabOnlineBtn: document.getElementById('tabOnlineBtn'),
+    idleOnlineContent: document.getElementById('idleOnlineContent'),
+    onlineUnavailableMsg: document.getElementById('onlineUnavailableMsg'),
+    onlineLobby: document.getElementById('onlineLobby'),
+    onlineLvlPicks: document.getElementById('onlineLvlPicks'),
+    onlineCreateBtn: document.getElementById('onlineCreateBtn'),
+    onlineJoinCodeInput: document.getElementById('onlineJoinCodeInput'),
+    onlineJoinBtn: document.getElementById('onlineJoinBtn'),
+    onlineJoinStatus: document.getElementById('onlineJoinStatus'),
+    onlineWaiting: document.getElementById('onlineWaiting'),
+    onlineRoomCodeDisplay: document.getElementById('onlineRoomCodeDisplay'),
+    onlineCancelBtn: document.getElementById('onlineCancelBtn'),
+    onlineBattleView: document.getElementById('onlineBattleView'),
+    onlineStageLabel: document.getElementById('onlineStageLabel'),
+    onlineMyEmoji: document.getElementById('onlineMyEmoji'),
+    onlineMyName: document.getElementById('onlineMyName'),
+    onlineMyHpBar: document.getElementById('onlineMyHpBar'),
+    onlineMyHpText: document.getElementById('onlineMyHpText'),
+    onlineOppEmoji: document.getElementById('onlineOppEmoji'),
+    onlineOppName: document.getElementById('onlineOppName'),
+    onlineOppHpBar: document.getElementById('onlineOppHpBar'),
+    onlineOppHpText: document.getElementById('onlineOppHpText'),
+    onlineUltimateName: document.getElementById('onlineUltimateName'),
+    onlineUltimateBar: document.getElementById('onlineUltimateBar'),
+    onlineUltimateBtn: document.getElementById('onlineUltimateBtn'),
+    onlineTimebar: document.getElementById('onlineTimebar'),
+    onlineKanji: document.getElementById('onlineKanji'),
+    onlineYomi: document.getElementById('onlineYomi'),
+    onlineTrack: document.getElementById('onlineTrack'),
+    onlineOverView: document.getElementById('onlineOverView'),
+    onlineOverTitle: document.getElementById('onlineOverTitle'),
+    onlineOverSub: document.getElementById('onlineOverSub'),
+    onlineRematchBtn: document.getElementById('onlineRematchBtn'),
+    onlineQuitBtn: document.getElementById('onlineQuitBtn'),
     battleView: document.getElementById('battleView'),
     battleStageLabel: document.getElementById('battleStageLabel'),
     playerHpBar: document.getElementById('playerHpBar'),
@@ -1011,6 +1117,7 @@
   let rpgUltimateCharge = 0;
   let rpgShieldActive = false;
   const RPG_ULTIMATE_CHARGE_NEEDED = 8;
+  const ULTIMATE_KEY = 'Tab'; // 必殺技発動キー。変更したい場合はここだけ書き換える
 
   function refreshUltimateButton(){
     const avatar = getCurrentAvatar();
@@ -1069,9 +1176,12 @@
     mode = newMode;
     el.tabScoreBtn.classList.toggle('active', mode==='score');
     el.tabRpgBtn.classList.toggle('active', mode==='rpg');
+    el.tabOnlineBtn.classList.toggle('active', mode==='online');
     el.idleScoreContent.style.display = mode==='score' ? 'block' : 'none';
     el.idleRpgContent.style.display = mode==='rpg' ? 'block' : 'none';
+    el.idleOnlineContent.style.display = mode==='online' ? 'block' : 'none';
     if(mode==='rpg') renderRpgHome();
+    else if(mode==='online') renderOnlineHome();
   }
 
   function rpgPickWord(){
@@ -1318,6 +1428,421 @@
     el.battleClearView.style.display = 'none';
     el.idle.style.display = 'block';
     renderRpgHome();
+  }
+
+  // ---------- オンライン対戦（Firebase Realtime Database） ----------
+  // https://console.firebase.google.com でプロジェクトを作成し、Realtime Databaseを有効化。
+  // ルールに { "rules": { "rooms": { "$roomCode": { ".read": true, ".write": true } } } } を設定後、
+  // ウェブアプリの設定情報を下のFIREBASE_CONFIGに入れると有効になります。
+  const FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyAfTEj0bdXqlr4Zbr4oNFtHpzPlsMQhczY',
+    databaseURL: 'https://typing-app-55ec5-default-rtdb.firebaseio.com',
+    projectId: 'typing-app-55ec5'
+  };
+  const FIREBASE_SDK_LOADED = typeof firebase !== 'undefined';
+  const FIREBASE_CONFIGURED = FIREBASE_SDK_LOADED &&
+    FIREBASE_CONFIG.apiKey.indexOf('__YOUR_') !== 0 &&
+    FIREBASE_CONFIG.databaseURL.indexOf('__YOUR_') !== 0;
+
+  let fbDb = null;
+  if(FIREBASE_CONFIGURED){
+    try{
+      firebase.initializeApp(FIREBASE_CONFIG);
+      fbDb = firebase.database();
+    }catch(e){ fbDb = null; }
+  }
+
+  let onlineStartLevel = 0;
+  let onlineRole = null;
+  let onlineOpponentRole = null;
+  let onlineRoomCode = null;
+  let onlineRoomRef = null;
+  let onlineLevelIndex = 0;
+  let onlineCurrent = null;
+  let onlineTyped = '';
+  let onlineStreak = 0;
+  let onlineUltimateCharge = 0;
+  let onlineShieldActive = false;
+  let onlineWordTimerRAF = null;
+  let onlineWordDeadline = 0;
+  let onlineMyHP = RPG_MAX_HP;
+  let onlineMyAttackSeq = 0;
+  let onlineOpponentLastSeq = 0;
+  let onlineListeners = [];
+
+  LEVELS.forEach((lv, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'lvl-pick' + (i===0 ? ' active' : '');
+    btn.textContent = lv.name;
+    btn.addEventListener('click', ()=>{
+      onlineStartLevel = i;
+      [...el.onlineLvlPicks.children].forEach(c=>c.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    el.onlineLvlPicks.appendChild(btn);
+  });
+
+  function generateRoomCode(){
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for(let i=0;i<4;i++) code += chars[Math.floor(Math.random()*chars.length)];
+    return code;
+  }
+
+  function pickWordAt(levelIdx){
+    const pool = LEVELS[levelIdx].words;
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  function renderOnlineHome(){
+    if(!FIREBASE_SDK_LOADED){
+      el.onlineUnavailableMsg.textContent = 'オンライン対戦はこのプレビューでは利用できません（GitHub Pages版・ローカル版でお試しください）';
+      el.onlineUnavailableMsg.style.display = 'block';
+      el.onlineLobby.style.display = 'none';
+      el.onlineWaiting.style.display = 'none';
+      return;
+    }
+    if(!FIREBASE_CONFIGURED){
+      el.onlineUnavailableMsg.textContent = 'オンライン対戦機能は未設定です（index.html内のFIREBASE_CONFIGを設定してください）';
+      el.onlineUnavailableMsg.style.display = 'block';
+      el.onlineLobby.style.display = 'none';
+      el.onlineWaiting.style.display = 'none';
+      return;
+    }
+    el.onlineUnavailableMsg.style.display = 'none';
+    el.onlineLobby.style.display = 'block';
+    el.onlineWaiting.style.display = 'none';
+    el.onlineJoinStatus.textContent = '';
+    el.onlineJoinStatus.className = 'submit-status';
+  }
+
+  function detachOnlineListeners(){
+    onlineListeners.forEach(([ref, cb])=>{ try{ ref.off('value', cb); }catch(e){} });
+    onlineListeners = [];
+  }
+
+  function updateOnlineHpBars(myHP, oppHP){
+    if(myHP !== null){
+      const pct = Math.max(0, Math.round(myHP/RPG_MAX_HP*100));
+      el.onlineMyHpBar.style.width = pct + '%';
+      el.onlineMyHpText.textContent = `${Math.max(0,myHP)}/${RPG_MAX_HP}`;
+    }
+    if(oppHP !== null){
+      const pct = Math.max(0, Math.round(oppHP/RPG_MAX_HP*100));
+      el.onlineOppHpBar.style.width = pct + '%';
+      el.onlineOppHpText.textContent = `${Math.max(0,oppHP)}/${RPG_MAX_HP}`;
+    }
+  }
+
+  function refreshOnlineUltimateButton(){
+    const avatar = getCurrentAvatar();
+    if(!avatar.move){
+      el.onlineUltimateName.textContent = '未解放（アバター未進化）';
+      el.onlineUltimateBtn.textContent = '必殺技';
+      el.onlineUltimateBtn.disabled = true;
+      el.onlineUltimateBar.style.width = '0%';
+      return;
+    }
+    el.onlineUltimateName.textContent = `${avatar.emoji} ${avatar.move.name}`;
+    el.onlineUltimateBtn.textContent = '必殺技！';
+    el.onlineUltimateBtn.disabled = onlineUltimateCharge < RPG_ULTIMATE_CHARGE_NEEDED;
+    el.onlineUltimateBar.style.width = Math.round(onlineUltimateCharge/RPG_ULTIMATE_CHARGE_NEEDED*100) + '%';
+  }
+
+  function sendOnlineAttack(dmg){
+    onlineMyAttackSeq++;
+    onlineRoomRef.child('players/'+onlineRole).update({
+      attackSeq: onlineMyAttackSeq,
+      lastAttackDamage: dmg
+    });
+  }
+
+  function applyIncomingOnlineDamage(dmg){
+    if(onlineShieldActive){
+      onlineShieldActive = false;
+      sfx.correct();
+      el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
+      return;
+    }
+    onlineMyHP = Math.max(0, onlineMyHP - dmg);
+    sfx.heartLose();
+    el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
+    updateOnlineHpBars(onlineMyHP, null);
+    onlineRoomRef.child('players/'+onlineRole+'/hp').set(onlineMyHP);
+    if(onlineMyHP <= 0){
+      onlineRoomRef.update({ status:'finished', winner: onlineOpponentRole });
+    }
+  }
+
+  function attachOnlineListeners(){
+    const oppRef = onlineRoomRef.child('players/'+onlineOpponentRole);
+    const oppCb = oppRef.on('value', (snap)=>{
+      if(!snap.exists()) return;
+      const opp = snap.val();
+      el.onlineOppEmoji.textContent = opp.avatarEmoji || '❓';
+      el.onlineOppName.textContent = opp.avatarName || '相手';
+      updateOnlineHpBars(null, typeof opp.hp === 'number' ? opp.hp : RPG_MAX_HP);
+      if(typeof opp.attackSeq === 'number' && opp.attackSeq > onlineOpponentLastSeq){
+        onlineOpponentLastSeq = opp.attackSeq;
+        applyIncomingOnlineDamage(opp.lastAttackDamage || 0);
+      }
+    });
+    onlineListeners.push([oppRef, oppCb]);
+
+    const statusRef = onlineRoomRef.child('status');
+    const statusCb = statusRef.on('value', (snap)=>{
+      if(snap.val() === 'finished'){
+        onlineRoomRef.child('winner').once('value').then(wsnap=>{
+          finishOnlineBattle(wsnap.val());
+        });
+      }
+    });
+    onlineListeners.push([statusRef, statusCb]);
+  }
+
+  function onlineRenderWord(){
+    renderWordTrack(el.onlineKanji, el.onlineYomi, el.onlineTrack, onlineCurrent, onlineTyped);
+  }
+
+  function startOnlineWordTimer(){
+    const dur = LEVELS[onlineLevelIndex].perWord;
+    onlineWordDeadline = performance.now() + dur*1000;
+    el.onlineTimebar.style.transition = 'none';
+    el.onlineTimebar.style.width = '100%';
+    void el.onlineTimebar.offsetWidth;
+    el.onlineTimebar.style.transition = `width ${dur}s linear`;
+    el.onlineTimebar.style.width = '0%';
+    cancelAnimationFrame(onlineWordTimerRAF);
+    function frame(){
+      const remain = (onlineWordDeadline - performance.now())/1000;
+      if(remain <= 0){ onlineMiss(); return; }
+      onlineWordTimerRAF = requestAnimationFrame(frame);
+    }
+    onlineWordTimerRAF = requestAnimationFrame(frame);
+  }
+
+  function onlineNextWord(){
+    onlineCurrent = pickWordAt(onlineLevelIndex);
+    onlineTyped = '';
+    onlineRenderWord();
+    startOnlineWordTimer();
+  }
+
+  function onlineHitCorrect(){
+    onlineStreak++;
+    onlineUltimateCharge = Math.min(RPG_ULTIMATE_CHARGE_NEEDED, onlineUltimateCharge+1);
+    refreshOnlineUltimateButton();
+    const dmg = calcBattleDamage(onlineCurrent, onlineStreak);
+    sfx.wordDone();
+    sendOnlineAttack(dmg);
+    onlineNextWord();
+  }
+
+  function onlineResetCombo(){
+    onlineStreak = 0;
+    onlineUltimateCharge = 0;
+    refreshOnlineUltimateButton();
+  }
+
+  function onlineMiss(){
+    cancelAnimationFrame(onlineWordTimerRAF);
+    onlineResetCombo();
+    sfx.timeout();
+    el.capture.value = '';
+    onlineTyped = '';
+    onlineNextWord();
+  }
+
+  function onlineProcessInput(){
+    if(state !== 'onlineBattle') return;
+    const val = el.capture.value.replace(/[^\x00-\x7F]/g, '');
+    const candidates = onlineCurrent[2];
+    if(val.endsWith(' ')){ onlineSkip(); return; }
+    if(val.length > onlineTyped.length){
+      const matches = candidates.filter(c => c.startsWith(val));
+      if(matches.length === 0){
+        el.capture.value = '';
+        onlineTyped = '';
+        cancelAnimationFrame(onlineWordTimerRAF);
+        onlineResetCombo();
+        sfx.heartLose();
+        el.stage.classList.remove('shake'); void el.stage.offsetWidth; el.stage.classList.add('shake');
+        onlineNextWord();
+        return;
+      }
+      sfx.correct();
+    }
+    onlineTyped = val;
+    el.capture.value = val;
+    setCaretEnd();
+    if(candidates.includes(onlineTyped)){
+      el.capture.value = '';
+      onlineTyped = '';
+      cancelAnimationFrame(onlineWordTimerRAF);
+      onlineHitCorrect();
+      return;
+    }
+    onlineRenderWord();
+  }
+
+  function onlineSkip(){
+    if(state !== 'onlineBattle') return;
+    const val = el.capture.value.replace(/[^\x00-\x7F]/g, '').trim();
+    const wordCorrect = onlineCurrent[2].includes(val);
+    el.capture.value = '';
+    onlineTyped = '';
+    cancelAnimationFrame(onlineWordTimerRAF);
+    if(wordCorrect) onlineHitCorrect();
+    else { onlineResetCombo(); onlineNextWord(); }
+  }
+
+  function useOnlineUltimate(){
+    if(state !== 'onlineBattle') return;
+    if(onlineUltimateCharge < RPG_ULTIMATE_CHARGE_NEEDED) return;
+    const avatar = getCurrentAvatar();
+    if(!avatar.move) return;
+    const move = avatar.move;
+    onlineUltimateCharge = 0;
+    refreshOnlineUltimateButton();
+    if(move.type === 'guard'){
+      onlineShieldActive = true;
+    } else if(move.type === 'drain'){
+      onlineMyHP = Math.min(RPG_MAX_HP, onlineMyHP + Math.round(move.power*0.5));
+      updateOnlineHpBars(onlineMyHP, null);
+      onlineRoomRef.child('players/'+onlineRole+'/hp').set(onlineMyHP);
+    }
+    sfx.bossClear();
+    sendOnlineAttack(move.power);
+    showBattleBanner(`${avatar.emoji} ${move.name}！`, ()=>{});
+  }
+
+  function startOnlineBattle(){
+    mode = 'online';
+    state = 'onlineBattle';
+    onlineStreak = 0;
+    onlineUltimateCharge = 0;
+    onlineShieldActive = false;
+    onlineMyAttackSeq = 0;
+    onlineOpponentLastSeq = 0;
+    onlineMyHP = RPG_MAX_HP;
+
+    el.idle.style.display = 'none';
+    el.onlineOverView.style.display = 'none';
+    el.onlineBattleView.style.display = 'flex';
+    el.onlineStageLabel.textContent = 'VS対戦 - ' + LEVELS[onlineLevelIndex].name;
+
+    const myAvatar = getCurrentAvatar();
+    el.onlineMyEmoji.textContent = myAvatar.emoji;
+    el.onlineMyName.textContent = myAvatar.name;
+    updateOnlineHpBars(RPG_MAX_HP, RPG_MAX_HP);
+    refreshOnlineUltimateButton();
+
+    attachOnlineListeners();
+    onlineNextWord();
+
+    el.capture.value = '';
+    el.capture.focus();
+  }
+
+  function finishOnlineBattle(winnerRole){
+    if(state !== 'onlineBattle') return;
+    state = 'idle';
+    detachOnlineListeners();
+    cancelAnimationFrame(onlineWordTimerRAF);
+    el.onlineBattleView.style.display = 'none';
+    el.onlineOverView.style.display = 'block';
+    const iWon = winnerRole === onlineRole;
+    el.onlineOverTitle.textContent = iWon ? '勝利！' : '敗北…';
+    el.onlineOverSub.textContent = iWon ? '相手を打ち破った！' : '相手に敗れた…';
+  }
+
+  function createRoom(){
+    if(!FIREBASE_CONFIGURED) return;
+    const avatar = getCurrentAvatar();
+    const nickname = (localStorage.getItem(NICKNAME_STORAGE_KEY) || 'プレイヤー').slice(0,12);
+    onlineRoomCode = generateRoomCode();
+    onlineRole = 'host';
+    onlineOpponentRole = 'guest';
+    onlineLevelIndex = onlineStartLevel;
+    onlineRoomRef = fbDb.ref('rooms/' + onlineRoomCode);
+    onlineRoomRef.set({
+      status: 'waiting',
+      winner: null,
+      levelIndex: onlineLevelIndex,
+      players: {
+        host: {
+          nickname, avatarEmoji: avatar.emoji, avatarName: avatar.name,
+          hp: RPG_MAX_HP, attackSeq: 0, lastAttackDamage: 0
+        }
+      }
+    });
+    el.onlineRoomCodeDisplay.textContent = onlineRoomCode;
+    el.onlineLobby.style.display = 'none';
+    el.onlineWaiting.style.display = 'block';
+    const guestRef = onlineRoomRef.child('players/guest');
+    const joinCb = guestRef.on('value', (snap)=>{
+      if(snap.exists()){
+        guestRef.off('value', joinCb);
+        startOnlineBattle();
+      }
+    });
+    onlineListeners.push([guestRef, joinCb]);
+  }
+
+  function joinRoom(){
+    if(!FIREBASE_CONFIGURED) return;
+    const code = el.onlineJoinCodeInput.value.trim().toUpperCase();
+    if(!code){
+      el.onlineJoinStatus.textContent = '部屋コードを入力してください';
+      el.onlineJoinStatus.className = 'submit-status err';
+      return;
+    }
+    el.onlineJoinStatus.textContent = '接続中…';
+    el.onlineJoinStatus.className = 'submit-status';
+    const roomRef = fbDb.ref('rooms/' + code);
+    roomRef.once('value').then(snap=>{
+      if(!snap.exists() || snap.val().status !== 'waiting'){
+        el.onlineJoinStatus.textContent = 'その部屋は見つかりませんでした';
+        el.onlineJoinStatus.className = 'submit-status err';
+        return;
+      }
+      const avatar = getCurrentAvatar();
+      const nickname = (localStorage.getItem(NICKNAME_STORAGE_KEY) || 'プレイヤー').slice(0,12);
+      onlineRoomCode = code;
+      onlineRole = 'guest';
+      onlineOpponentRole = 'host';
+      onlineRoomRef = roomRef;
+      onlineLevelIndex = snap.val().levelIndex || 0;
+      roomRef.child('players/guest').set({
+        nickname, avatarEmoji: avatar.emoji, avatarName: avatar.name,
+        hp: RPG_MAX_HP, attackSeq: 0, lastAttackDamage: 0
+      }).then(()=>{
+        roomRef.update({ status: 'battling' });
+        startOnlineBattle();
+      });
+    }).catch(()=>{
+      el.onlineJoinStatus.textContent = '接続に失敗しました';
+      el.onlineJoinStatus.className = 'submit-status err';
+    });
+  }
+
+  function cancelOnlineWaiting(){
+    detachOnlineListeners();
+    if(onlineRoomRef){ try{ onlineRoomRef.remove(); }catch(e){} }
+    onlineRoomRef = null;
+    el.onlineLobby.style.display = 'block';
+    el.onlineWaiting.style.display = 'none';
+  }
+
+  function onlineQuit(){
+    detachOnlineListeners();
+    cancelAnimationFrame(onlineWordTimerRAF);
+    onlineRoomRef = null;
+    state = 'idle';
+    el.onlineBattleView.style.display = 'none';
+    el.onlineOverView.style.display = 'none';
+    el.idle.style.display = 'block';
+    renderOnlineHome();
   }
 
   // ---------- スコアランキング（JSONBin.io） ----------
@@ -1774,10 +2299,13 @@
 
     const acc = wordsAttempted > 0 ? Math.round((correctWordsTotal/wordsAttempted)*100) : 100;
     const wpm = wordsCompleted;
-    let grade = 'C';
-    if(wpm >= 30 && acc >= 95) grade = 'S';
-    else if(wpm >= 22 && acc >= 90) grade = 'A';
-    else if(wpm >= 14 && acc >= 80) grade = 'B';
+    let grade = 'D';
+    if(score >= 5000) grade = 'SSS';
+    else if(score >= 4000) grade = 'SS';
+    else if(score >= 3500) grade = 'S';
+    else if(score >= 3000) grade = 'A';
+    else if(score >= 2000) grade = 'B';
+    else if(score >= 1000) grade = 'C';
 
     const outOfLives = lives <= 0;
     el.grade.textContent = grade + ' ランク';
@@ -1800,6 +2328,8 @@
     clearInterval(timerId);
     cancelAnimationFrame(wordTimerRAF);
     cancelAnimationFrame(rpgWordTimerRAF);
+    cancelAnimationFrame(onlineWordTimerRAF);
+    detachOnlineListeners();
     state = 'idle';
     el.play.style.display = 'none';
     el.result.style.display = 'none';
@@ -1807,11 +2337,14 @@
     el.battleView.style.display = 'none';
     el.battleOverView.style.display = 'none';
     el.battleClearView.style.display = 'none';
+    el.onlineBattleView.style.display = 'none';
+    el.onlineOverView.style.display = 'none';
     el.idle.style.display = 'block';
     timeLeft = 60;
     wordsCompleted = 0; wordsAttempted = 0; correctWordsTotal = 0; score = 0;
     updateGauges();
     if(mode === 'rpg') renderRpgHome();
+    else if(mode === 'online') renderOnlineHome();
   }
 
   function setCaretEnd(){
@@ -1864,17 +2397,28 @@
     advanceWord(wordCorrect);
   }
 
+  function routeInput(){
+    if(state === 'battle') battleProcessInput();
+    else if(state === 'onlineBattle') onlineProcessInput();
+    else processInput();
+  }
+
   el.capture.addEventListener('compositionstart', ()=>{ composing = true; });
-  el.capture.addEventListener('compositionend', ()=>{ composing = false; if(state==='battle') battleProcessInput(); else processInput(); });
-  el.capture.addEventListener('input', (e)=>{ if(e.isComposing || composing) return; if(state==='battle') battleProcessInput(); else processInput(); });
+  el.capture.addEventListener('compositionend', ()=>{ composing = false; routeInput(); });
+  el.capture.addEventListener('input', (e)=>{ if(e.isComposing || composing) return; routeInput(); });
   el.capture.addEventListener('keydown', (e)=>{
     if(e.key === 'Enter'){
       if(state === 'playing'){ e.preventDefault(); skipWord(); }
       else if(state === 'battle'){ e.preventDefault(); battleSkip(); }
+      else if(state === 'onlineBattle'){ e.preventDefault(); onlineSkip(); }
+    } else if(e.key === ULTIMATE_KEY && (state === 'battle' || state === 'onlineBattle')){
+      e.preventDefault();
+      if(state === 'battle') useUltimate();
+      else useOnlineUltimate();
     }
   });
 
-  el.stage.addEventListener('click', ()=>{ if(state === 'playing' || state === 'battle') el.capture.focus(); });
+  el.stage.addEventListener('click', ()=>{ if(state === 'playing' || state === 'battle' || state === 'onlineBattle') el.capture.focus(); });
   el.startBtn.addEventListener('click', startGame);
   el.retryBtn.addEventListener('click', startGame);
   el.resetBtn.addEventListener('click', resetToIdle);
@@ -1900,6 +2444,14 @@
   el.ultimateBtn.addEventListener('click', useUltimate);
   el.avatarResetBtn.addEventListener('click', resetAvatar);
   el.battleClearBackBtn.addEventListener('click', backToRpgHome);
+  el.tabOnlineBtn.addEventListener('click', ()=>switchMode('online'));
+  el.onlineCreateBtn.addEventListener('click', createRoom);
+  el.onlineJoinBtn.addEventListener('click', joinRoom);
+  el.onlineJoinCodeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') joinRoom(); });
+  el.onlineCancelBtn.addEventListener('click', cancelOnlineWaiting);
+  el.onlineUltimateBtn.addEventListener('click', useOnlineUltimate);
+  el.onlineRematchBtn.addEventListener('click', onlineQuit);
+  el.onlineQuitBtn.addEventListener('click', onlineQuit);
 
   document.addEventListener('keydown', (e)=>{
     const rankingOpen = el.rankingView.style.display !== 'none';
